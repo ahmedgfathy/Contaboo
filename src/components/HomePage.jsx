@@ -20,7 +20,8 @@ import {
   FireIcon,
   UserIcon,
   GlobeAltIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  HomeIcon
 } from '@heroicons/react/24/outline';
 import { getAllProperties, searchProperties, getPropertyTypeStats } from '../services/apiService';
 import PropertyHeroSlider from './PropertyHeroSlider';
@@ -171,11 +172,14 @@ const HomePage = () => {
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [stats, setStats] = useState([]);
   const [displayedMessages, setDisplayedMessages] = useState([]);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [itemsToShow, setItemsToShow] = useState(10); // Initial load: 10 properties (2 rows of 5)
   const [language, setLanguage] = useState('arabic');
-  const [isInitialized, setIsInitialized] = useState(false); // Prevent multiple initializations
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProperties, setTotalProperties] = useState(0);
+  const propertiesPerPage = 52; // 52 properties = 13 rows × 4 cards per row
   
   // Geolocation states
   const [userLocation, setUserLocation] = useState(null);
@@ -186,7 +190,7 @@ const HomePage = () => {
   const propertyFilters = [
     { id: 'all', label: 'جميع العقارات', labelEn: 'All Properties', icon: BuildingOffice2Icon, color: 'from-purple-500 to-pink-500' },
     { id: 'apartment', label: 'شقق', labelEn: 'Apartments', icon: HomeModernIcon, color: 'from-blue-500 to-cyan-500' },
-    { id: 'villa', label: 'فيلل', labelEn: 'Villas', icon: HomeModernIcon, color: 'from-green-500 to-emerald-500' },
+    { id: 'villa', label: 'فيلات', labelEn: 'Villas', icon: HomeModernIcon, color: 'from-green-500 to-emerald-500' },
     { id: 'land', label: 'أراضي', labelEn: 'Land', icon: MapPinIcon, color: 'from-orange-500 to-red-500' },
     { id: 'office', label: 'مكاتب', labelEn: 'Offices', icon: BuildingStorefrontIcon, color: 'from-indigo-500 to-purple-500' },
     { id: 'warehouse', label: 'مخازن', labelEn: 'Warehouses', icon: BuildingLibraryIcon, color: 'from-pink-500 to-rose-500' }
@@ -323,43 +327,53 @@ const HomePage = () => {
     return distance < 1 ? `${Math.round(distance * 1000)}م` : `${distance.toFixed(1)}كم`;
   };
 
-  const loadInitialData = async () => {
-    if (loading) return; // Prevent multiple simultaneous calls
+  const loadInitialData = async (page = 1) => {
+    if (loading) return;
     
     setLoading(true);
     try {
-      console.log('🔄 Starting to load initial data...');
+      console.log('🔄 Loading data for page:', page);
       
       // Load property stats first
       const propertyStats = await getPropertyTypeStats();
       console.log('✅ Property stats received:', propertyStats);
       if (propertyStats && propertyStats.length > 0) {
-        console.log('✅ Stats array length:', propertyStats.length);
-        console.log('✅ First stat item:', propertyStats[0]);
-        propertyStats.forEach(stat => {
-          console.log(`✅ Property type: ${stat.property_type}, Count: ${stat.count}`);
-        });
         setStats(propertyStats);
       } else {
-        console.warn('⚠️ No property stats received');
         setStats([]);
       }
       
-      // Load properties
-      const allProperties = await getAllProperties(10000);
-      console.log('✅ Loaded properties:', allProperties?.length || 0);
+      // Load properties with pagination
+      const allProperties = await getAllProperties(10000); // Get all, then paginate on frontend
+      console.log('✅ Total properties loaded:', allProperties?.length || 0);
+      
       if (allProperties && allProperties.length > 0) {
         setMessages(allProperties);
-        console.log('✅ Properties set successfully');
+        setTotalProperties(allProperties.length);
+        setTotalPages(Math.ceil(allProperties.length / propertiesPerPage));
+        
+        // Set current page data
+        const startIndex = (page - 1) * propertiesPerPage;
+        const endIndex = startIndex + propertiesPerPage;
+        const pageData = allProperties.slice(startIndex, endIndex);
+        setDisplayedMessages(pageData);
+        setCurrentPage(page);
+        
+        console.log(`✅ Page ${page} loaded: ${pageData.length} properties (${startIndex + 1}-${Math.min(endIndex, allProperties.length)} of ${allProperties.length})`);
       } else {
-        console.warn('⚠️ No properties received');
         setMessages([]);
+        setDisplayedMessages([]);
+        setTotalProperties(0);
+        setTotalPages(1);
       }
       
     } catch (error) {
       console.error('❌ Error loading data:', error);
-      setStats([]); // Set empty array on error
+      setStats([]);
       setMessages([]);
+      setDisplayedMessages([]);
+      setTotalProperties(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
@@ -367,48 +381,123 @@ const HomePage = () => {
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
-      loadInitialData();
+      loadInitialData(1);
       return;
     }
 
     setLoading(true);
     try {
-      // Use the selectedFilter for more accurate search
       const filterType = selectedFilter === 'all' ? null : selectedFilter;
       const searchResults = await searchProperties(searchTerm, filterType, 10000);
-      setMessages(searchResults);
-      setCurrentPage(1);
+      
+      if (searchResults && searchResults.length > 0) {
+        setMessages(searchResults);
+        setTotalProperties(searchResults.length);
+        setTotalPages(Math.ceil(searchResults.length / propertiesPerPage));
+        
+        // Show first page of search results
+        const pageData = searchResults.slice(0, propertiesPerPage);
+        setDisplayedMessages(pageData);
+        setCurrentPage(1);
+        
+        console.log(`🔍 Search results: ${searchResults.length} properties found`);
+      } else {
+        setMessages([]);
+        setDisplayedMessages([]);
+        setTotalProperties(0);
+        setTotalPages(1);
+        setCurrentPage(1);
+      }
     } catch (error) {
       console.error('Error searching:', error);
-      // Show error message to user
       alert(language === 'arabic' ? 'حدث خطأ في البحث. يرجى المحاولة مرة أخرى.' : 'Search error. Please try again.');
     }
     setLoading(false);
   };
 
-  const handleStatClick = (filterType) => {
-    handleFilterChange(filterType);
+  const handleStatClick = async (filterType) => {
+    console.log('🎯 Filter clicked:', filterType);
     
-    // If there's an active search, re-run it with the new filter
+    setSelectedFilter(filterType);
+    setCurrentPage(1);
+    
     if (searchTerm.trim()) {
       handleSearch();
     } else {
-      // If no search term, load all data for the new filter
-      loadFilteredData(filterType);
+      await loadFilteredData(filterType);
     }
   };
 
-  // New function to load data by filter
   const loadFilteredData = async (filterType = 'all') => {
     setLoading(true);
     try {
-      const filterParam = filterType === 'all' ? null : filterType;
-      const filteredMessages = await searchMessages('', filterParam, 10000);
-      setMessages(filteredMessages);
-    } catch (error) {
-      console.error('Error loading filtered data:', error);
+      console.log('🔄 Loading filtered data for:', filterType);
+      
+      let filteredProperties = [];
+      
+      if (filterType === 'all') {
+        filteredProperties = await getAllProperties(10000);
+      } else {
+        // Use searchProperties with empty search term but with filter type
+        filteredProperties = await searchProperties('', filterType, 10000);
       }
+      
+      console.log(`✅ Filtered data loaded: ${filteredProperties?.length || 0} properties for ${filterType}`);
+      
+      if (filteredProperties && filteredProperties.length > 0) {
+        setMessages(filteredProperties);
+        setTotalProperties(filteredProperties.length);
+        setTotalPages(Math.ceil(filteredProperties.length / propertiesPerPage));
+        
+        // Show first page
+        const pageData = filteredProperties.slice(0, propertiesPerPage);
+        setDisplayedMessages(pageData);
+        setCurrentPage(1);
+      } else {
+        setMessages([]);
+        setDisplayedMessages([]);
+        setTotalProperties(0);
+        setTotalPages(1);
+        setCurrentPage(1);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading filtered data:', error);
+      setMessages([]);
+      setDisplayedMessages([]);
+      setTotalProperties(0);
+      setTotalPages(1);
+    }
     setLoading(false);
+  };
+
+  // Pagination functions
+  const goToPage = (page) => {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    
+    const startIndex = (page - 1) * propertiesPerPage;
+    const endIndex = startIndex + propertiesPerPage;
+    const pageData = messages.slice(startIndex, endIndex);
+    
+    setDisplayedMessages(pageData);
+    setCurrentPage(page);
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    console.log(`📄 Page ${page} loaded: ${pageData.length} properties (${startIndex + 1}-${Math.min(endIndex, messages.length)} of ${messages.length})`);
+  };
+
+  const nextPage = () => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  };
+
+  const prevPage = () => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
   };
 
 
@@ -447,64 +536,13 @@ const HomePage = () => {
     return colors[type] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
   };
 
-  // Use messages directly from API without unnecessary filtering
-
-  // Update displayed messages when messages or itemsToShow changes
-  useEffect(() => {
-    if (messages && messages.length > 0) {
-      // Sort by proximity if geolocation is enabled
-      const sortedMessages = sortPropertiesByProximity(messages);
-      const messagesToShow = sortedMessages.slice(0, itemsToShow);
-      setDisplayedMessages(messagesToShow);
-      setHasMore(messagesToShow.length < messages.length);
-      console.log(`📊 Displaying ${messagesToShow.length} of ${messages.length} messages ${sortByProximity ? '(sorted by proximity)' : ''}`);
-    } else {
-      setDisplayedMessages([]);
-      setHasMore(false);
-    }
-  }, [messages, itemsToShow, userLocation, sortByProximity]);
-
-  // Infinite scroll handler
-  const handleScroll = () => {
-    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000 && hasMore && !loadingMore) {
-      loadMoreProperties();
-    }
-  };
-
-  // Load more properties
-  const loadMoreProperties = () => {
-    if (loadingMore || !hasMore) return;
-    
-    setLoadingMore(true);
-    
-    setTimeout(() => {
-      const newItemsToShow = itemsToShow + 5; // Load 5 more properties (1 row)
-      setItemsToShow(newItemsToShow);
-      setLoadingMore(false);
-    }, 500); // Small delay for smooth loading animation
-  };
-
-  // Add scroll event listener - use useCallback to prevent recreating the function
-  const handleScrollCallback = React.useCallback(() => {
-    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 1000 && hasMore && !loadingMore) {
-      loadMoreProperties();
-    }
-  }, [hasMore, loadingMore]);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScrollCallback);
-    return () => window.removeEventListener('scroll', handleScrollCallback);
-  }, [handleScrollCallback]);
-
-  // Reset when search or filter changes
+  // Update search handlers
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
-    setItemsToShow(10);
   };
 
   const handleFilterChange = (filter) => {
     setSelectedFilter(filter);
-    setItemsToShow(10);
   };
 
   const texts = language === 'arabic' ? {
@@ -1036,7 +1074,7 @@ const HomePage = () => {
                       {stats.slice(0, 3).map((stat, index) => (
                         <div key={index} className="text-center p-2 sm:p-3 bg-gray-50 rounded-lg sm:rounded-xl">
                           <div className="text-base sm:text-lg font-bold text-purple-600">{stat.count?.toLocaleString() || '0'}</div>
-                          <div className="text-xs text-gray-600">{stat.property_type === 'apartment' ? (language === 'arabic' ? 'شقق' : 'Apartments') : stat.property_type === 'villa' ? (language === 'arabic' ? 'فيلل' : 'Villas') : (language === 'arabic' ? 'أراضي' : 'Land')}</div>
+                          <div className="text-xs text-gray-600">{stat.property_type === 'apartment' ? (language === 'arabic' ? 'شقق' : 'Apartments') : stat.property_type === 'villa' ? (language === 'arabic' ? 'فيلات' : 'Villas') : (language === 'arabic' ? 'أراضي' : 'Land')}</div>
                         </div>
                       ))}
                     </motion.div>
@@ -1523,114 +1561,324 @@ const HomePage = () => {
           ) : (
             <>
               {/* Properties Grid - 5 per row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
                 {displayedMessages.map((message, index) => (
                   <motion.div 
                     key={message.id} 
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                    whileHover={{ scale: 1.02, y: -5 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                    whileHover={{ y: -8, transition: { duration: 0.3 } }}
                     onClick={() => navigate(`/property/${message.id}`)}
-                    className="bg-gradient-to-br from-gray-700 to-gray-800 rounded-xl overflow-hidden hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-xl border border-gray-600 cursor-pointer min-h-[400px]"
+                    className="group bg-white/5 backdrop-blur-lg rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-500 shadow-2xl border border-white/10 cursor-pointer hover:border-white/20"
                   >
                     {/* Property Image */}
-                    <div className="relative h-56 overflow-hidden">
+                    <div className="relative h-64 overflow-hidden">
                       <img 
                         src={getVirtualPropertyImage(message.property_type, message.id)}
                         alt={getPropertyTypeLabel(message.property_type)}
-                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-110"
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                         onError={(e) => {
                           e.target.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&auto=format';
                         }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                      <motion.span 
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                      
+                      {/* Property Type Badge */}
+                      <motion.div 
                         whileHover={{ scale: 1.05 }}
-                        className={`absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-medium border backdrop-blur-sm ${getPropertyTypeColorClass(message.property_type)}`}
+                        className={`absolute top-4 left-4 px-4 py-2 rounded-xl text-sm font-semibold backdrop-blur-md border border-white/20 ${getPropertyTypeColorClass(message.property_type)}`}
                       >
                         {getPropertyTypeLabel(message.property_type)}
-                      </motion.span>
-                      <div className="absolute top-3 right-3 flex items-center gap-1 text-xs text-white bg-black/40 backdrop-blur-sm px-2 py-1 rounded-full">
-                        <ClockIcon className="h-3 w-3" />
-                        {message.timestamp}
+                      </motion.div>
+
+                      {/* Source Type Badge */}
+                      <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-md border border-white/20 rounded-lg">
+                        <span className="text-xs text-white/90 font-medium">
+                          {message.source_type === 'chat' ? 'واتساب' : 'مستورد'}
+                        </span>
                       </div>
+
+                      {/* Price Overlay */}
+                      {message.price && message.price !== 'السعر غير محدد' && message.price !== 'غير محدد' && (
+                        <div className="absolute bottom-4 left-4 right-4">
+                          <div className="bg-gradient-to-r from-green-500/90 to-emerald-600/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/20">
+                            <span className="text-white font-bold text-lg">
+                              {message.price} {message.price.includes('مليون') || message.price.includes('ألف') ? '' : 'جنيه'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Property Content */}
-                    <div className="p-7">
-                      <h4 className="font-semibold text-white mb-3 flex items-center gap-2 text-lg">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                        {getPropertyTypeLabel(message.property_type)} - {message.location || texts.notSpecified}
-                      </h4>
-                      
-                      <p className="text-gray-300 text-sm line-clamp-3 mb-4 leading-relaxed min-h-[60px]">
-                        {message.message}
-                      </p>
-                      
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-400">{texts.location}:</span>
-                          <span className="text-gray-300">{message.location || texts.notSpecified}</span>
+                    <div className="p-6 space-y-4">
+                      {/* Property Title */}
+                      <div>
+                        <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 group-hover:text-blue-300 transition-colors duration-300">
+                          {message.property_name || message.message}
+                        </h3>
+                        <p className="text-sm text-gray-400 line-clamp-2">
+                          {message.full_description || message.message}
+                        </p>
+                      </div>
+
+                      {/* Property Details Grid */}
+                      <div className="grid grid-cols-2 gap-3 py-4 border-t border-white/10">
+                        {/* Location */}
+                        <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                          <MapPinIcon className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-gray-400">المنطقة</p>
+                            <p className="text-sm font-medium text-white truncate">
+                              {message.regions || message.location || 'غير محدد'}
+                            </p>
+                          </div>
                         </div>
-                        {message.price && (
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-400">{texts.price}:</span>
-                            <span className="text-green-400 font-semibold">{message.price}</span>
+
+                        {/* Bedrooms */}
+                        {(message.bedroom || message.bedrooms) && (
+                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <HomeIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-gray-400">غرف النوم</p>
+                              <p className="text-sm font-medium text-white">
+                                {message.bedroom || message.bedrooms}
+                              </p>
+                            </div>
                           </div>
                         )}
-                        <div className="mt-3 pt-3 border-t border-gray-600">
+
+                        {/* Bathrooms */}
+                        {(message.bathroom || message.bathrooms) && (
+                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <BuildingOffice2Icon className="h-4 w-4 text-cyan-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-gray-400">الحمامات</p>
+                              <p className="text-sm font-medium text-white">
+                                {message.bathroom || message.bathrooms}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Area Size */}
+                        {message.area_size && (
+                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <ChartBarIcon className="h-4 w-4 text-orange-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-gray-400">المساحة</p>
+                              <p className="text-sm font-medium text-white">
+                                {message.area_size}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Floor Number */}
+                        {(message.floor_no || message.floor_number) && (
+                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <BuildingStorefrontIcon className="h-4 w-4 text-indigo-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-gray-400">الدور</p>
+                              <p className="text-sm font-medium text-white">
+                                {message.floor_no || message.floor_number}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Agent Contact */}
+                        {message.agent_phone && message.agent_phone !== 'غير متوفر' && (
+                          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                            <UserIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs text-gray-400">الوكيل</p>
+                              <p className="text-sm font-medium text-white truncate">
+                                {message.sender}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Distance Display */}
+                      {userLocation && (
+                        <div className="flex items-center justify-center py-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                          <MapPinIcon className="h-4 w-4 text-blue-400 ml-2" />
+                          <span className="text-sm text-blue-300">
+                            {getDistanceToProperty(message)} كم من موقعك
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 pt-4 border-t border-white/10">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/property/${message.id}`);
+                          }}
+                          className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+                        >
+                          <EyeIcon className="h-5 w-5" />
+                          عرض التفاصيل
+                        </motion.button>
+
+                        {message.agent_phone && message.agent_phone !== 'غير متوفر' && (
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/property/${message.id}`);
+                              window.open(`tel:${message.agent_phone}`, '_self');
                             }}
-                            className="w-full px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 font-medium flex items-center justify-center gap-2"
+                            className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl"
                           >
-                            <EyeIcon className="h-4 w-4" />
-                            {texts.viewDetails}
+                            <PhoneIcon className="h-5 w-5" />
                           </motion.button>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
 
-              {/* Loading More Indicator */}
-              {loadingMore && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center justify-center py-8"
-                >
-                  <div className="relative">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600"></div>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      <div className="w-3 h-3 bg-purple-600 rounded-full animate-pulse"></div>
-                    </div>
-                  </div>
-                  <span className="mr-4 text-gray-300 text-lg font-medium">
-                    {language === 'arabic' ? 'جاري تحميل المزيد...' : 'Loading more...'}
-                  </span>
-                </motion.div>
-              )}
-
-              {/* End of Results Indicator */}
-              {!hasMore && displayedMessages.length > 0 && (
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
                 <motion.div 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-8"
+                  className="flex flex-col items-center gap-6 py-8"
                 >
-                  <div className="inline-flex items-center px-6 py-3 bg-gray-800 rounded-full border border-gray-700">
-                    <SparklesIcon className="w-5 h-5 text-purple-400 mr-2" />
-                    <span className="text-gray-300 font-medium">
-                      {language === 'arabic' ? 'تم عرض جميع العقارات المتاحة' : 'All properties displayed'}
-                    </span>
+                  {/* Pagination Info */}
+                  <div className="text-center">
+                    <p className="text-gray-300 text-lg mb-2">
+                      {language === 'arabic' 
+                        ? `عرض ${(currentPage - 1) * propertiesPerPage + 1} - ${Math.min(currentPage * propertiesPerPage, totalProperties)} من ${totalProperties} عقار`
+                        : `Showing ${(currentPage - 1) * propertiesPerPage + 1} - ${Math.min(currentPage * propertiesPerPage, totalProperties)} of ${totalProperties} properties`
+                      }
+                    </p>
+                    <p className="text-gray-400">
+                      {language === 'arabic' 
+                        ? `صفحة ${currentPage} من ${totalPages}`
+                        : `Page ${currentPage} of ${totalPages}`
+                      }
+                    </p>
                   </div>
+
+                  {/* Pagination Buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* Previous Button */}
+                    <motion.button
+                      whileHover={currentPage > 1 ? { scale: 1.05 } : {}}
+                      whileTap={currentPage > 1 ? { scale: 0.95 } : {}}
+                      onClick={prevPage}
+                      disabled={currentPage <= 1}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                        currentPage > 1
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
+                          : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {language === 'arabic' ? 'السابق' : 'Previous'}
+                    </motion.button>
+
+                    {/* Page Numbers */}
+                    <div className="flex items-center gap-2 mx-4">
+                      {/* First page */}
+                      {currentPage > 3 && (
+                        <>
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => goToPage(1)}
+                            className="w-10 h-10 rounded-lg bg-gray-700 text-gray-300 hover:bg-blue-600 hover:text-white transition-all duration-300"
+                          >
+                            1
+                          </motion.button>
+                          {currentPage > 4 && <span className="text-gray-500">...</span>}
+                        </>
+                      )}
+
+                      {/* Visible page numbers */}
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        const pageNumber = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i;
+                        if (pageNumber > totalPages) return null;
+                        
+                        return (
+                          <motion.button
+                            key={pageNumber}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => goToPage(pageNumber)}
+                            className={`w-10 h-10 rounded-lg font-medium transition-all duration-300 ${
+                              pageNumber === currentPage
+                                ? 'bg-blue-600 text-white shadow-lg scale-110'
+                                : 'bg-gray-700 text-gray-300 hover:bg-blue-600 hover:text-white'
+                            }`}
+                          >
+                            {pageNumber}
+                          </motion.button>
+                        );
+                      })}
+
+                      {/* Last page */}
+                      {currentPage < totalPages - 2 && (
+                        <>
+                          {currentPage < totalPages - 3 && <span className="text-gray-500">...</span>}
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => goToPage(totalPages)}
+                            className="w-10 h-10 rounded-lg bg-gray-700 text-gray-300 hover:bg-blue-600 hover:text-white transition-all duration-300"
+                          >
+                            {totalPages}
+                          </motion.button>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Next Button */}
+                    <motion.button
+                      whileHover={currentPage < totalPages ? { scale: 1.05 } : {}}
+                      whileTap={currentPage < totalPages ? { scale: 0.95 } : {}}
+                      onClick={nextPage}
+                      disabled={currentPage >= totalPages}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                        currentPage < totalPages
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
+                          : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      }`}
+                    >
+                      {language === 'arabic' ? 'التالي' : 'Next'}
+                    </motion.button>
+                  </div>
+
+                  {/* Quick Jump */}
+                  {totalPages > 10 && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-gray-400 text-sm">
+                        {language === 'arabic' ? 'انتقال سريع:' : 'Quick jump:'}
+                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={totalPages}
+                        value={currentPage}
+                        onChange={(e) => {
+                          const page = parseInt(e.target.value);
+                          if (page >= 1 && page <= totalPages) {
+                            goToPage(page);
+                          }
+                        }}
+                        className="w-16 px-2 py-1 bg-gray-700 text-white rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-center"
+                      />
+                      <span className="text-gray-400 text-sm">/ {totalPages}</span>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </>
