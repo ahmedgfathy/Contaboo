@@ -25,6 +25,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { getAllProperties, searchProperties, getPropertyTypeStats, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
 import PropertyHeroSlider from './PropertyHeroSlider';
+import AIFloatingButton from './AIFloatingButton';
+import AIDashboard from './AIDashboard';
+import AIChatAssistant from './AIChatAssistant';
+import { isAIAvailable } from '../services/aiService';
 
 // Virtual property image generator
 const getVirtualPropertyImage = (propertyType, messageId) => {
@@ -189,6 +193,9 @@ const HomePage = () => {
   
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // AI Chat state
+  const [isAIChatOpen, setIsAIChatOpen] = useState(false);
 
   useEffect(() => {
     // Check authentication status on component mount
@@ -795,7 +802,7 @@ const HomePage = () => {
                   }
                 </motion.p>
 
-                {/* Features */}
+                {/* Features - Simplified */}
                 <motion.div 
                   className="flex flex-wrap justify-center lg:justify-start gap-2 sm:gap-4 px-4 sm:px-0"
                   initial={{ opacity: 0, y: 20 }}
@@ -803,22 +810,27 @@ const HomePage = () => {
                   transition={{ duration: 0.8, delay: 0.5 }}
                 >
                   {[
-                    { icon: CpuChipIcon, text: language === 'arabic' ? 'بحث ذكي' : 'Smart Search' },
-                    { icon: ChartBarIcon, text: language === 'arabic' ? 'إحصائيات متقدمة' : 'Advanced Analytics' },
-                    { icon: StarIcon, text: language === 'arabic' ? 'عقارات مميزة' : 'Premium Properties' }
+                    { 
+                      icon: StarIcon, 
+                      text: language === 'arabic' ? 'عقارات مميزة' : 'Premium Properties',
+                      action: () => document.getElementById('properties-section').scrollIntoView({ behavior: 'smooth' }),
+                      isAI: false
+                    }
                   ].map((feature, index) => (
-                    <motion.div
+                    <motion.button
                       key={index}
+                      onClick={feature.action}
                       whileHover={{ scale: 1.05 }}
-                      className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-gray-200 shadow-lg text-sm sm:text-base"
+                      whileTap={{ scale: 0.95 }}
+                      className="flex items-center gap-2 px-3 sm:px-4 py-2 backdrop-blur-sm rounded-full border shadow-lg text-sm sm:text-base transition-all duration-300 cursor-pointer bg-white/80 border-gray-200 text-gray-700 hover:bg-white/90"
                     >
                       <feature.icon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-                      <span className="text-gray-700 font-medium">{feature.text}</span>
-                    </motion.div>
+                      <span className="font-medium">{feature.text}</span>
+                    </motion.button>
                   ))}
                 </motion.div>
 
-                {/* CTA Buttons */}
+                {/* CTA Buttons - Simplified */}
                 <motion.div 
                   className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start px-4 sm:px-0"
                   initial={{ opacity: 0, y: 20 }}
@@ -826,20 +838,10 @@ const HomePage = () => {
                   transition={{ duration: 0.8, delay: 0.6 }}
                 >
                   <motion.button
-                    onClick={() => navigate('/login')}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 justify-center text-sm sm:text-base"
-                  >
-                    <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    {texts.login}
-                  </motion.button>
-                  
-                  <motion.button
                     onClick={() => document.getElementById('properties-section').scrollIntoView({ behavior: 'smooth' })}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-6 sm:px-8 py-3 sm:py-4 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded-2xl border-2 border-gray-300 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 justify-center text-sm sm:text-base"
+                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 justify-center text-sm sm:text-base"
                   >
                     <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     {language === 'arabic' ? 'استكشف العقارات' : 'Explore Properties'}
@@ -1071,21 +1073,6 @@ const HomePage = () => {
                         </motion.button>
                       )}
                     </div>
-
-                    {/* Quick Stats */}
-                    <motion.div 
-                      className="mt-4 sm:mt-6 grid grid-cols-3 gap-2 sm:gap-4"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.6, delay: 0.7 }}
-                    >
-                      {stats.slice(0, 3).map((stat, index) => (
-                        <div key={index} className="text-center p-2 sm:p-3 bg-gray-50 rounded-lg sm:rounded-xl">
-                          <div className="text-base sm:text-lg font-bold text-purple-600">{stat.count?.toLocaleString() || '0'}</div>
-                          <div className="text-xs text-gray-600">{stat.property_type === 'apartment' ? (language === 'arabic' ? 'شقق' : 'Apartments') : stat.property_type === 'villa' ? (language === 'arabic' ? 'فيلات' : 'Villas') : (language === 'arabic' ? 'أراضي' : 'Land')}</div>
-                        </div>
-                      ))}
-                    </motion.div>
                   </motion.div>
                 </div>
               </motion.div>
@@ -1702,6 +1689,16 @@ const HomePage = () => {
         </motion.footer>
         </div>
       </div>
+
+      {/* AI Chat Assistant Modal */}
+      <AIChatAssistant
+        isOpen={isAIChatOpen}
+        onClose={() => setIsAIChatOpen(false)}
+        language={language}
+      />
+
+      {/* AI Floating Assistant Button */}
+      <AIFloatingButton language={language} />
     </div>
   );
 };
