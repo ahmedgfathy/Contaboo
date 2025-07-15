@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   XMarkIcon, 
@@ -15,10 +15,17 @@ import {
   ChatBubbleLeftEllipsisIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
-import { getPropertyById } from '../services/apiService';
+import { getPropertyById, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
 
 // Virtual property image generator
 const PropertyDetailsModal = ({ property, isOpen, onClose }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check authentication status on component mount
+    setIsAuthenticated(isUserAuthenticated());
+  }, []);
+
   if (!property) return null;
 
   const modalVariants = {
@@ -144,13 +151,15 @@ const PropertyDetailsModal = ({ property, isOpen, onClose }) => {
                         <p className="text-white font-medium">{property.sender || 'غير محدد'}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <PhoneIcon className="w-5 h-5 text-blue-400" />
-                      <div>
-                        <p className="text-sm text-gray-400">رقم الهاتف</p>
-                        <p className="text-white font-medium font-mono" dir="ltr">{property.agent_phone || 'غير متاح'}</p>
+                    {hideMobileNumber(property.agent_phone, isAuthenticated) && (
+                      <div className="flex items-center gap-3">
+                        <PhoneIcon className="w-5 h-5 text-blue-400" />
+                        <div>
+                          <p className="text-sm text-gray-400">رقم الهاتف</p>
+                          <p className="text-white font-medium font-mono" dir="ltr">{property.agent_phone || 'غير متاح'}</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">

@@ -23,6 +23,12 @@ const PropertyDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [language, setLanguage] = useState('arabic');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check authentication status on component mount
+    setIsAuthenticated(isUserAuthenticated());
+  }, []);
 
   useEffect(() => {
     loadPropertyDetails();
@@ -402,7 +408,7 @@ const PropertyDetailPage = () => {
                     </div>
                   )}
                   
-                  {property.mobile_no && (
+                  {hideMobileNumber(property.mobile_no, isAuthenticated) && (
                     <div className="bg-gray-700/50 p-4 rounded-lg">
                       <p className="text-xs text-gray-400 mb-1">رقم الموبايل</p>
                       <a href={`tel:${property.mobile_no}`} className="text-green-400 font-medium hover:text-green-300 block">
@@ -411,7 +417,7 @@ const PropertyDetailPage = () => {
                     </div>
                   )}
                   
-                  {property.agent_phone && property.agent_phone !== 'غير متوفر' && (
+                  {hideMobileNumber(property.agent_phone, isAuthenticated) && property.agent_phone !== 'غير متوفر' && (
                     <div className="bg-gray-700/50 p-4 rounded-lg">
                       <p className="text-xs text-gray-400 mb-1">هاتف الوكيل</p>
                       <a href={`tel:${property.agent_phone}`} className="text-green-400 font-medium hover:text-green-300 block">
@@ -420,7 +426,7 @@ const PropertyDetailPage = () => {
                     </div>
                   )}
                   
-                  {property.tel && (
+                  {hideMobileNumber(property.tel, isAuthenticated) && (
                     <div className="bg-gray-700/50 p-4 rounded-lg">
                       <p className="text-xs text-gray-400 mb-1">الهاتف الأرضي</p>
                       <a href={`tel:${property.tel}`} className="text-green-400 font-medium hover:text-green-300 block">
@@ -639,7 +645,7 @@ const PropertyDetailPage = () => {
                   </div>
                 )}
 
-                {property.mobile_no && (
+                {hideMobileNumber(property.mobile_no, isAuthenticated) && (
                   <div className="space-y-1">
                     <p className="text-gray-400 text-sm">رقم الموبايل</p>
                     <a href={`tel:${property.mobile_no}`} className="text-green-400 font-medium hover:text-green-300">
@@ -648,7 +654,7 @@ const PropertyDetailPage = () => {
                   </div>
                 )}
 
-                {property.agent_phone && property.agent_phone !== 'غير متوفر' && (
+                {hideMobileNumber(property.agent_phone, isAuthenticated) && property.agent_phone !== 'غير متوفر' && (
                   <div className="space-y-1">
                     <p className="text-gray-400 text-sm">هاتف الوكيل</p>
                     <a href={`tel:${property.agent_phone}`} className="text-green-400 font-medium hover:text-green-300">
@@ -657,7 +663,7 @@ const PropertyDetailPage = () => {
                   </div>
                 )}
 
-                {property.tel && (
+                {hideMobileNumber(property.tel, isAuthenticated) && (
                   <div className="space-y-1">
                     <p className="text-gray-400 text-sm">الهاتف الأرضي</p>
                     <a href={`tel:${property.tel}`} className="text-green-400 font-medium hover:text-green-300">
