@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeftIcon, ChevronRightIcon, MapPinIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { getAllProperties } from '../services/apiService';
@@ -83,8 +83,8 @@ const PropertyHeroSlider = ({ language = 'arabic', isBackground = false }) => {
     return propertyType;
   };
 
-  // Default featured properties (fallback)
-  const defaultProperties = [
+  // Default featured properties (fallback) - memoized to prevent recreating on every render
+  const defaultProperties = useMemo(() => [
     {
       id: 1,
       image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&h=600&fit=crop&auto=format&q=80&brightness=1.2&contrast=0.8',
@@ -105,7 +105,7 @@ const PropertyHeroSlider = ({ language = 'arabic', isBackground = false }) => {
       type: 'apartment',
       area: '180م²'
     }
-  ];
+  ], [language]);
 
   // Fetch real properties from database
   useEffect(() => {
@@ -147,7 +147,7 @@ const PropertyHeroSlider = ({ language = 'arabic', isBackground = false }) => {
     };
 
     fetchFeaturedProperties();
-  }, [language]);
+  }, [language, defaultProperties]);
 
   // Set default properties if still empty after loading
   useEffect(() => {
@@ -155,7 +155,18 @@ const PropertyHeroSlider = ({ language = 'arabic', isBackground = false }) => {
       console.log('PropertyHeroSlider: Setting default properties as fallback');
       setFeaturedProperties(defaultProperties);
     }
-  }, [loading, featuredProperties.length]);
+  }, [loading, featuredProperties.length, defaultProperties]);
+
+  // Auto-play functionality - moved before early returns to follow Rules of Hooks
+  useEffect(() => {
+    if (!isAutoPlaying || featuredProperties.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % featuredProperties.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, featuredProperties.length]);
 
   // If no properties available, show loading or error state
   if (loading) {
@@ -178,17 +189,6 @@ const PropertyHeroSlider = ({ language = 'arabic', isBackground = false }) => {
       </div>
     );
   }
-
-  // Auto-play functionality
-  useEffect(() => {
-    if (!isAutoPlaying) return;
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % featuredProperties.length);
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isAutoPlaying, featuredProperties.length]);
 
   const goToPrevious = () => {
     setIsAutoPlaying(false);
