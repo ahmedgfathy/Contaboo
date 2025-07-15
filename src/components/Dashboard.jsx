@@ -1314,6 +1314,8 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                   disabled={adminLoading}
                   whileHover={{ scale: adminLoading ? 1 : 1.02 }}
                   whileTap={{ scale: adminLoading ? 1 : 0.98 }}
+                  whileHover={{ scale: adminLoading ? 1 : 1.02 }}
+                  whileTap={{ scale: adminLoading ? 1 : 0.98 }}
                   className="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl shadow-lg hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3"
                 >
                   {adminLoading ? (
@@ -1458,6 +1460,9 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
         onClose={closeDeleteModal}
         onDelete={confirmDeleteProperty}
       />
+
+      {/* AI Analytics Component - Now Integrated */}
+      <AIAnalytics />
     </div>
   );
 };
