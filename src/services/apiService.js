@@ -260,29 +260,19 @@ export const getAllProperties = async (limit = 1000) => {
     const params = new URLSearchParams();
     params.append('limit', limit.toString());
     
-    console.log('🔍 Fetching properties from:', `${API_BASE_URL}/messages?${params.toString()}`);
-    const response = await apiCall(`/messages?${params.toString()}`);
+    console.log('🔍 Fetching all properties from unified search endpoint');
+    const response = await apiCall(`/search-all?${params.toString()}`);
     console.log('✅ Properties API response received:', response);
     
-    // The backend returns { success: true, messages: [...] }
-    if (response && response.success && response.messages) {
-      console.log('✅ Found', response.messages.length, 'properties');
+    // The unified endpoint returns { success: true, chatMessages: [...], importedProperties: [...] }
+    if (response && response.success) {
+      const allProperties = [
+        ...(response.chatMessages || []),
+        ...(response.importedProperties || [])
+      ];
       
-      // Transform the data to match what HomePage expects
-      const transformedProperties = response.messages.map(item => ({
-        id: item.id,
-        message: item.property_name || item.description || 'عقار متاح للبيع',
-        property_type: item.property_type || 'apartment',
-        location: item.regions || 'غير محدد',
-        price: item.unit_price || item.amount || null,
-        timestamp: item.imported_at ? new Date(item.imported_at).toLocaleDateString('ar-EG') : new Date().toLocaleDateString('ar-EG'),
-        agent_phone: item.mobile_no || item.tel || null,
-        agent_description: item.name || null,
-        full_description: item.description || item.zain_house_sales_notes || null
-      }));
-      
-      console.log('✅ Transformed', transformedProperties.length, 'properties');
-      return transformedProperties;
+      console.log(`✅ Found ${allProperties.length} total properties (${response.chatMessages?.length || 0} from chat, ${response.importedProperties?.length || 0} from imports)`);
+      return allProperties;
     } else {
       console.warn('⚠️ Unexpected API response format:', response);
       return [];
@@ -518,13 +508,21 @@ export const searchProperties = async (searchTerm = '', filter = '', limit = 100
   }
   
   if (filter && filter !== 'all') {
-    params.append('filter', filter);
+    params.append('type', filter);
   }
   
   params.append('limit', limit.toString());
   
-  const response = await apiCall(`/search-properties?${params.toString()}`);
-  return response.data;
+  const response = await apiCall(`/search-all?${params.toString()}`);
+  
+  // Combine chat messages and imported properties into a unified array
+  const allResults = [
+    ...(response.chatMessages || []),
+    ...(response.importedProperties || [])
+  ];
+  
+  console.log(`🔍 Search results for "${searchTerm}" with filter "${filter}": ${allResults.length} properties`);
+  return allResults;
 };
 
 // Combined search across both chat messages and properties
@@ -536,7 +534,7 @@ export const searchAll = async (searchTerm = '', filter = '', limit = 50) => {
   }
   
   if (filter && filter !== 'all') {
-    params.append('filter', filter);
+    params.append('type', filter);
   }
   
   params.append('limit', limit.toString());

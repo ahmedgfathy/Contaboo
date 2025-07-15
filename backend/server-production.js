@@ -178,13 +178,17 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// Combined search endpoint
+// Combined search endpoint with unified structure
 app.get('/api/search-all', async (req, res) => {
   const { q, type, limit = 50 } = req.query;
   
   try {
-    let chatQuery = 'SELECT *, \'chat\' as source_type FROM chat_messages WHERE 1=1';
-    let importQuery = 'SELECT *, \'import\' as source_type FROM properties_import WHERE 1=1';
+    let chatQuery = 'SELECT * FROM chat_messages WHERE 1=1';
+    let importQuery = `SELECT * FROM properties_import WHERE 1=1 
+                       AND property_name IS NOT NULL 
+                       AND property_name != '' 
+                       AND property_name NOT LIKE '%admin%'
+                       AND property_name NOT LIKE '%hazem%'`;
     const params = [];
     
     if (q) {
@@ -194,8 +198,8 @@ app.get('/api/search-all', async (req, res) => {
     }
     
     if (type && type !== 'all') {
-      params.push(type);
-      chatQuery += ` AND property_type = $${params.length}`;
+      params.push(`%${type}%`);
+      chatQuery += ` AND property_type ILIKE $${params.length}`;
       importQuery += ` AND property_type ILIKE $${params.length}`;
     }
     
@@ -207,11 +211,15 @@ app.get('/api/search-all', async (req, res) => {
       pool.query(importQuery, params)
     ]);
     
+    // Transform both result sets to unified structure
+    const unifiedChatMessages = chatResults.rows.map(row => transformToUnifiedStructure(row, 'chat'));
+    const unifiedImportedProperties = importResults.rows.map(row => transformToUnifiedStructure(row, 'import'));
+    
     res.json({ 
       success: true, 
-      chatMessages: chatResults.rows,
-      importedProperties: importResults.rows,
-      total: chatResults.rows.length + importResults.rows.length
+      chatMessages: unifiedChatMessages,
+      importedProperties: unifiedImportedProperties,
+      total: unifiedChatMessages.length + unifiedImportedProperties.length
     });
   } catch (error) {
     console.error('Search error:', error);
@@ -233,8 +241,8 @@ app.get('/api/messages/search', async (req, res) => {
     }
     
     if (type && type !== 'all') {
-      params.push(type);
-      query += ` AND property_type = $${params.length}`;
+      params.push(`%${type}%`);
+      query += ` AND property_type ILIKE $${params.length}`;
     }
     
     query += ` ORDER BY created_at DESC LIMIT ${limit}`;
@@ -247,12 +255,16 @@ app.get('/api/messages/search', async (req, res) => {
   }
 });
 
-// Get all messages endpoint
+// Get all messages endpoint with unified structure
 app.get('/api/messages', async (req, res) => {
   const { type, limit = 100 } = req.query;
   
   try {
-    let query = 'SELECT * FROM properties_import WHERE 1=1';
+    let query = `SELECT * FROM properties_import WHERE 1=1 
+                 AND property_name IS NOT NULL 
+                 AND property_name != '' 
+                 AND property_name NOT LIKE '%admin%'
+                 AND property_name NOT LIKE '%hazem%'`;
     const params = [];
     
     if (type && type !== 'all') {
@@ -263,29 +275,209 @@ app.get('/api/messages', async (req, res) => {
     query += ` ORDER BY created_time DESC LIMIT ${limit}`;
     
     const result = await pool.query(query, params);
-    res.json({ success: true, messages: result.rows, total: result.rows.length });
+    
+    // Transform to unified structure
+    const unifiedMessages = result.rows.map(row => transformToUnifiedStructure(row, 'import'));
+    
+    res.json({ success: true, messages: unifiedMessages, total: unifiedMessages.length });
   } catch (error) {
     console.error('Messages error:', error);
     res.status(500).json({ success: false, message: 'Database error' });
   }
 });
 
-// Get individual message endpoint
+// Unified data structure transformer
+const transformToUnifiedStructure = (rawData, sourceType) => {
+  if (sourceType === 'chat') {
+    // Extract location from message if not in location field
+    const extractedLocation = rawData.location || extractLocationFromText(rawData.message);
+    
+    // Chat messages already have the expected structure
+    return {
+      id: rawData.id,
+      sender: rawData.sender,
+      message: rawData.message,
+      timestamp: rawData.timestamp,
+      property_type: rawData.property_type,
+      keywords: rawData.keywords,
+      location: extractedLocation,
+      price: rawData.price,
+      agent_phone: rawData.agent_phone,
+      agent_description: rawData.agent_description,
+      full_description: rawData.full_description,
+      created_at: rawData.created_at,
+      source_type: 'chat',
+      // Additional standardized fields
+      property_name: rawData.message,
+      description: rawData.full_description,
+      unit_price: rawData.price,
+      regions: extractedLocation,
+      bedrooms: extractFromText(rawData.message, 'غرف|غرفة|bedrooms?'),
+      bathrooms: extractFromText(rawData.message, 'حمام|حمامات|bathroom?'),
+      area_size: extractFromText(rawData.message, 'متر|م\\d+|\\d+م|square'),
+      floor_number: extractFromText(rawData.message, 'دور|طابق|floor'),
+      // All chat_messages table fields
+      property_id: rawData.property_id,
+      agent_id: rawData.agent_id,
+      property_type_id: rawData.property_type_id,
+      area_id: rawData.area_id
+    };
+  } else {
+    // Transform properties_import to match chat structure
+    const extractedLocation = rawData.regions || extractLocationFromText(rawData.property_name || rawData.description);
+    
+    return {
+      id: rawData.id,
+      sender: rawData.name || rawData.property_offered_by || 'مالك العقار',
+      message: rawData.property_name || rawData.description || 'عقار مستورد',
+      timestamp: rawData.created_time || rawData.modified_time || new Date().toISOString(),
+      property_type: rawData.property_type || rawData.property_category || 'other',
+      keywords: generateKeywords(rawData),
+      location: extractedLocation,
+      price: rawData.unit_price || rawData.amount || rawData.payment,
+      agent_phone: rawData.mobile_no || rawData.tel,
+      agent_description: `${rawData.name || 'مالك العقار'} - ${rawData.handler || 'وسيط عقاري'}`,
+      full_description: buildFullDescription(rawData),
+      created_at: rawData.imported_at || rawData.created_time,
+      source_type: 'import',
+      // All properties_import fields (preserved)
+      property_name: rawData.property_name,
+      property_number: rawData.property_number,
+      property_category: rawData.property_category,
+      created_time: rawData.created_time,
+      regions: extractedLocation,
+      modified_time: rawData.modified_time,
+      floor_no: rawData.floor_no,
+      building: rawData.building,
+      bedroom: rawData.bedroom,
+      land_garden: rawData.land_garden,
+      bathroom: rawData.bathroom,
+      finished: rawData.finished,
+      last_modified_by: rawData.last_modified_by,
+      update_unit: rawData.update_unit,
+      property_offered_by: rawData.property_offered_by,
+      name: rawData.name,
+      mobile_no: rawData.mobile_no,
+      tel: rawData.tel,
+      unit_price: rawData.unit_price,
+      payment_type: rawData.payment_type,
+      deposit: rawData.deposit,
+      payment: rawData.payment,
+      paid_every: rawData.paid_every,
+      amount: rawData.amount,
+      description: rawData.description,
+      zain_house_sales_notes: rawData.zain_house_sales_notes,
+      sales: rawData.sales,
+      handler: rawData.handler,
+      property_image: rawData.property_image,
+      imported_at: rawData.imported_at
+    };
+  }
+};
+
+// Helper function to extract location from text
+const extractLocationFromText = (text) => {
+  if (!text) return null;
+  
+  // Common Egyptian areas and locations
+  const locations = [
+    'القاهرة', 'الجيزة', 'الإسكندرية', 'مدينة نصر', 'مصر الجديدة', 'الزمالك', 'وسط البلد', 
+    'المعادي', 'حدائق الأهرام', 'مدينة الشيخ زايد', 'مدينة 6 أكتوبر', 'التجمع الخامس', 
+    'العاشر من رمضان', 'الهرم', 'فيصل', 'الدقي', 'المهندسين', 'إمبابة', 'العجمي', 
+    'المنتزه', 'سيدي جابر', 'أسوان', 'الأقصر', 'أسيوط', 'المنيا', 'بني سويف', 'الفيوم',
+    'طنطا', 'المنصورة', 'الزقازيق', 'بورسعيد', 'السويس', 'الإسماعيلية', 'دمياط',
+    'كفر الشيخ', 'قنا', 'سوهاج', 'البحر الأحمر', 'الغردقة', 'شرم الشيخ', 'دهب',
+    'مرسى علم', 'اللوتس', 'الرحاب', 'كمبوند', 'ريحانة', 'بيت الوطن'
+  ];
+  
+  // Check for location patterns in Arabic text
+  for (const location of locations) {
+    if (text.includes(location)) {
+      return location;
+    }
+  }
+  
+  // Check for common location patterns
+  const patterns = [
+    /في\s+(\w+)/g,  // في المعادي
+    /بـ\s*(\w+)/g,   // بالمعادي  
+    /(\w+)\s+الجديدة/g // مصر الجديدة
+  ];
+  
+  for (const pattern of patterns) {
+    const matches = text.match(pattern);
+    if (matches) {
+      return matches[0].replace(/في\s+|بـ\s*/, '').trim();
+    }
+  }
+  
+  return null;
+};
+
+// Helper function to generate keywords from properties data
+const generateKeywords = (rawData) => {
+  const keywords = [];
+  if (rawData.property_type) keywords.push(rawData.property_type);
+  if (rawData.regions) keywords.push(rawData.regions);
+  if (rawData.bedroom) keywords.push(`${rawData.bedroom} غرف`);
+  if (rawData.bathroom) keywords.push(`${rawData.bathroom} حمام`);
+  if (rawData.unit_price) keywords.push(rawData.unit_price);
+  return keywords.join(', ');
+};
+
+// Helper function to build full description from properties data
+const buildFullDescription = (rawData) => {
+  const parts = [];
+  
+  if (rawData.property_name) parts.push(rawData.property_name);
+  if (rawData.bedroom) parts.push(`${rawData.bedroom} غرف نوم`);
+  if (rawData.bathroom) parts.push(`${rawData.bathroom} حمام`);
+  if (rawData.floor_no) parts.push(`الدور ${rawData.floor_no}`);
+  if (rawData.finished) parts.push(`التشطيب: ${rawData.finished}`);
+  if (rawData.land_garden) parts.push(`حديقة: ${rawData.land_garden}`);
+  if (rawData.building) parts.push(`المبنى: ${rawData.building}`);
+  if (rawData.regions) parts.push(`الموقع: ${rawData.regions}`);
+  if (rawData.description) parts.push(rawData.description);
+  if (rawData.zain_house_sales_notes) parts.push(`ملاحظات: ${rawData.zain_house_sales_notes}`);
+  
+  return parts.length > 0 ? parts.join(' | ') : 'لا توجد تفاصيل إضافية متاحة';
+};
+
+// Get individual message endpoint with unified structure
 app.get('/api/messages/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    // Try chat_messages first, then properties_import
-    let result = await pool.query('SELECT *, \'chat\' as source_type FROM chat_messages WHERE id = $1', [id]);
+    // Try chat_messages first
+    let result = await pool.query('SELECT * FROM chat_messages WHERE id = $1', [id]);
+    let sourceType = 'chat';
     
     if (result.rows.length === 0) {
-      result = await pool.query('SELECT *, \'import\' as source_type FROM properties_import WHERE id = $1', [id]);
+      // Check properties_import with quality filter
+      result = await pool.query(`
+        SELECT * FROM properties_import 
+        WHERE id = $1 
+        AND property_name IS NOT NULL 
+        AND property_name != ''
+        AND property_name NOT LIKE '%admin%'
+        AND property_name NOT LIKE '%hazem%'
+      `, [id]);
+      sourceType = 'import';
     }
     
     if (result.rows.length > 0) {
-      res.json({ success: true, message: result.rows[0] });
+      const rawData = result.rows[0];
+      
+      // Transform to unified structure
+      const unifiedProperty = transformToUnifiedStructure(rawData, sourceType);
+      
+      res.json({ success: true, message: unifiedProperty });
     } else {
-      res.status(404).json({ success: false, message: 'Message not found' });
+      res.status(404).json({ 
+        success: false, 
+        message: 'Property not found',
+        details: `لم يتم العثور على العقار رقم ${id} أو أن بياناته غير مكتملة`
+      });
     }
   } catch (error) {
     console.error('Message error:', error);
@@ -350,6 +542,74 @@ app.post('/api/import/whatsapp', async (req, res) => {
   }
 });
 
+// Admin endpoint for removing duplicates
+app.post('/api/admin/remove-duplicates', async (req, res) => {
+  try {
+    console.log('Admin: Starting duplicate removal process...');
+    
+    // Get total count before cleanup
+    const beforeCountQuery = `
+      SELECT 
+        (SELECT COUNT(*) FROM chat_messages) as chat_count,
+        (SELECT COUNT(*) FROM properties_import) as properties_count
+    `;
+    const beforeResult = await pool.query(beforeCountQuery);
+    const totalBefore = parseInt(beforeResult.rows[0].chat_count) + parseInt(beforeResult.rows[0].properties_count);
+    
+    // Remove duplicates from chat_messages based on message content and sender
+    const chatDuplicatesQuery = `
+      DELETE FROM chat_messages 
+      WHERE id NOT IN (
+        SELECT MIN(id) 
+        FROM chat_messages 
+        GROUP BY message, sender, property_type
+      )
+    `;
+    const chatResult = await pool.query(chatDuplicatesQuery);
+    console.log(`Removed ${chatResult.rowCount} duplicate chat messages`);
+    
+    // Remove duplicates from properties_import based on property name and description
+    const propertiesDuplicatesQuery = `
+      DELETE FROM properties_import 
+      WHERE id NOT IN (
+        SELECT MIN(id) 
+        FROM properties_import 
+        GROUP BY property_name, description, property_type
+      )
+    `;
+    const propertiesResult = await pool.query(propertiesDuplicatesQuery);
+    console.log(`Removed ${propertiesResult.rowCount} duplicate imported properties`);
+    
+    // Get total count after cleanup
+    const afterResult = await pool.query(beforeCountQuery);
+    const totalAfter = parseInt(afterResult.rows[0].chat_count) + parseInt(afterResult.rows[0].properties_count);
+    
+    const totalRemoved = chatResult.rowCount + propertiesResult.rowCount;
+    
+    console.log(`✅ Duplicate removal completed: ${totalRemoved} total duplicates removed`);
+    
+    res.json({
+      success: true,
+      message: `تم حذف ${totalRemoved} رسالة مكررة بنجاح`,
+      removed: totalRemoved,
+      totalBefore,
+      totalAfter,
+      details: {
+        chatDuplicatesRemoved: chatResult.rowCount,
+        propertiesDuplicatesRemoved: propertiesResult.rowCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Admin: Error removing duplicates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء حذف الرسائل المكررة',
+      error: error.message
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
@@ -385,5 +645,13 @@ process.on('SIGINT', async () => {
   console.log('✅ Database connections closed.');
   process.exit(0);
 });
+
+// Helper function to extract information from text
+const extractFromText = (text, pattern) => {
+  if (!text) return null;
+  const regex = new RegExp(`(\\d+)\\s*${pattern}`, 'gi');
+  const match = text.match(regex);
+  return match ? match[0] : null;
+};
 
 module.exports = app;
