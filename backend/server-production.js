@@ -610,6 +610,173 @@ app.post('/api/admin/remove-duplicates', async (req, res) => {
   }
 });
 
+// Enhanced CSV Import endpoint with dynamic column creation
+app.post('/api/import-csv', async (req, res) => {
+  try {
+    const { tableName, headers, data } = req.body;
+    
+    if (!tableName || !headers || !data || !Array.isArray(data)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: tableName, headers, data'
+      });
+    }
+
+    // Validate table name (security)
+    if (tableName !== 'properties_import') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid table name'
+      });
+    }
+
+    console.log(`CSV Import - Processing ${data.length} rows with ${headers.length} columns`);
+
+    // Clean and prepare headers (remove spaces, special characters)
+    const cleanHeaders = headers.map(header => 
+      header.toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '')
+        .slice(0, 63) // PostgreSQL column name limit
+    );
+
+    console.log('Original headers:', headers);
+    console.log('Clean headers:', cleanHeaders);
+
+    // Get existing table columns
+    const existingColumnsResult = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1 AND table_schema = 'public'
+    `, [tableName]);
+    
+    const existingColumns = existingColumnsResult.rows.map(row => row.column_name);
+    console.log('Existing columns:', existingColumns);
+
+    // Find missing columns and add them
+    const missingColumns = cleanHeaders.filter(header => !existingColumns.includes(header));
+    console.log('Missing columns to add:', missingColumns);
+
+    // Add missing columns dynamically
+    for (const missingColumn of missingColumns) {
+      try {
+        console.log(`Adding new column: ${missingColumn}`);
+        await pool.query(`ALTER TABLE ${tableName} ADD COLUMN ${missingColumn} TEXT`);
+        console.log(`✅ Successfully added column: ${missingColumn}`);
+      } catch (alterError) {
+        console.error(`Error adding column ${missingColumn}:`, alterError.message);
+        // Continue with other columns even if one fails
+      }
+    }
+
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+    const addedColumns = [];
+
+    // Process data in smaller batches
+    const batchSize = 10;
+    
+    for (let i = 0; i < data.length; i += batchSize) {
+      const batch = data.slice(i, i + batchSize);
+      
+      try {
+        // Process each row individually within the batch
+        for (const row of batch) {
+          try {
+            // Prepare values for this row
+            const values = [];
+            const placeholders = [];
+            const columnNames = [];
+            let placeholderIndex = 1;
+            
+            // Map row data to clean headers
+            for (let j = 0; j < cleanHeaders.length; j++) {
+              const cleanHeader = cleanHeaders[j];
+              const value = Array.isArray(row) ? row[j] : row[headers[j]];
+              
+              if (value !== undefined && value !== null && value !== '') {
+                columnNames.push(cleanHeader);
+                values.push(String(value).trim());
+                placeholders.push(`$${placeholderIndex++}`);
+              }
+            }
+            
+            // Add imported_at timestamp
+            columnNames.push('imported_at');
+            values.push(new Date().toISOString());
+            placeholders.push(`$${placeholderIndex++}`);
+
+            // Create INSERT query with only non-empty columns
+            if (columnNames.length > 1) { // More than just imported_at
+              const query = `
+                INSERT INTO ${tableName} (${columnNames.join(', ')})
+                VALUES (${placeholders.join(', ')})
+              `;
+
+              await pool.query(query, values);
+              successCount++;
+            } else {
+              console.log('Skipping empty row');
+              errorCount++;
+            }
+            
+          } catch (rowError) {
+            console.error(`Error processing row in batch ${i}:`, rowError);
+            errorCount++;
+            errors.push({
+              row: successCount + errorCount,
+              error: rowError.message
+            });
+          }
+        }
+        
+      } catch (batchError) {
+        console.error(`Error processing batch ${i}-${i + batch.length}:`, batchError);
+        errorCount += batch.length;
+        errors.push({
+          batch: `${i}-${i + batch.length}`,
+          error: batchError.message
+        });
+      }
+    }
+
+    const response = {
+      success: true,
+      imported: successCount,
+      message: `CSV import completed: ${successCount} imported, ${errorCount} failed`,
+      stats: {
+        totalRows: data.length,
+        successCount,
+        errorCount,
+        tableName,
+        columnsAdded: missingColumns.length,
+        newColumns: missingColumns
+      }
+    };
+
+    if (errors.length > 0) {
+      response.errors = errors.slice(0, 10); // Limit errors in response
+      response.message += ` (${errors.length} errors)`;
+    }
+
+    if (missingColumns.length > 0) {
+      response.message += ` (${missingColumns.length} new columns added)`;
+    }
+
+    console.log('CSV Import completed:', response);
+    res.status(200).json(response);
+    
+  } catch (error) {
+    console.error('CSV import error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'CSV import failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);

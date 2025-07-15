@@ -385,17 +385,6 @@ const PropertyHeroSlider = ({ language = 'arabic', isBackground = false }) => {
           />
         ))}
       </div>
-
-      {/* Auto-play indicator - Position differently for background mode */}
-      <div className={`absolute ${isBackground ? 'top-8 right-8' : 'top-4 right-4'} flex items-center gap-2 text-white/70 text-sm`}>
-        <div className={`w-2 h-2 rounded-full ${isAutoPlaying ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`}></div>
-        <span className="hidden md:inline">
-          {isAutoPlaying 
-            ? (language === 'arabic' ? 'تشغيل تلقائي' : 'Auto-play') 
-            : (language === 'arabic' ? 'متوقف' : 'Paused')
-          }
-        </span>
-      </div>
     </div>
   );
 };
