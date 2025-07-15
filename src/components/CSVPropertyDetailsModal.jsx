@@ -11,9 +11,12 @@ import {
   CalendarIcon,
   UserIcon
 } from '@heroicons/react/24/outline';
+import { isUserAuthenticated, hideMobileNumber } from '../services/apiService';
 
 const CSVPropertyDetailsModal = ({ property, isOpen, onClose }) => {
   if (!property) return null;
+
+  const isAuthenticated = isUserAuthenticated();
 
   const modalVariants = {
     hidden: { opacity: 0, scale: 0.8 },
@@ -149,7 +152,7 @@ const CSVPropertyDetailsModal = ({ property, isOpen, onClose }) => {
               )}
 
               {/* Contact Information */}
-              {(property.Name || property.Mobile_No || property.Tel) && (
+              {(property.Name || hideMobileNumber(property.Mobile_No, isAuthenticated) || hideMobileNumber(property.Tel, isAuthenticated)) && (
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <h3 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
                     <UserIcon className="w-5 h-5 text-blue-600" />
@@ -162,14 +165,14 @@ const CSVPropertyDetailsModal = ({ property, isOpen, onClose }) => {
                         <span className="font-medium">{property.Name}</span>
                       </p>
                     )}
-                    {property.Mobile_No && (
+                    {hideMobileNumber(property.Mobile_No, isAuthenticated) && (
                       <p className="flex items-center gap-2">
                         <PhoneIcon className="w-4 h-4 text-green-600" />
                         <span className="text-gray-600">الجوال:</span>
                         <span className="font-medium direction-ltr">{property.Mobile_No}</span>
                       </p>
                     )}
-                    {property.Tel && (
+                    {hideMobileNumber(property.Tel, isAuthenticated) && (
                       <p className="flex items-center gap-2">
                         <PhoneIcon className="w-4 h-4 text-blue-600" />
                         <span className="text-gray-600">الهاتف:</span>

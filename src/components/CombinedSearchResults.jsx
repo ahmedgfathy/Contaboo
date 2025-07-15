@@ -1,11 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { ChatBubbleLeftIcon, BuildingOffice2Icon, PhoneIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { isUserAuthenticated, hideMobileNumber } from '../services/apiService';
 
 const CombinedSearchResults = ({ combinedResults, onItemClick }) => {
   if (!combinedResults) return null;
 
   const { chatMessages = [], properties = [], totalChat = 0, totalProperties = 0 } = combinedResults;
+  const isAuthenticated = isUserAuthenticated();
 
   return (
     <div className="space-y-6">
@@ -109,7 +111,7 @@ const CombinedSearchResults = ({ combinedResults, onItemClick }) => {
                       {property.Regions}
                     </span>
                   )}
-                  {property.Mobile_No && (
+                  {hideMobileNumber(property.Mobile_No, isAuthenticated) && (
                     <span className="flex items-center gap-1">
                       <PhoneIcon className="w-4 h-4" />
                       {property.Mobile_No}

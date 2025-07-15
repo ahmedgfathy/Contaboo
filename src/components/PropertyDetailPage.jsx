@@ -14,7 +14,7 @@ import {
   ShareIcon,
   HeartIcon
 } from '@heroicons/react/24/outline';
-import { getPropertyById } from '../services/apiService';
+import { getPropertyById, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
 
 const PropertyDetailPage = () => {
   const { id } = useParams();

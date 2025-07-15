@@ -23,7 +23,7 @@ import {
   ExclamationTriangleIcon,
   HomeIcon
 } from '@heroicons/react/24/outline';
-import { getAllProperties, searchProperties, getPropertyTypeStats } from '../services/apiService';
+import { getAllProperties, searchProperties, getPropertyTypeStats, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
 import PropertyHeroSlider from './PropertyHeroSlider';
 
 // Virtual property image generator
@@ -186,6 +186,14 @@ const HomePage = () => {
   const [locationPermission, setLocationPermission] = useState('prompt'); // 'granted', 'denied', 'prompt'
   const [sortByProximity, setSortByProximity] = useState(false);
   const [geoError, setGeoError] = useState(null);
+  
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    // Check authentication status on component mount
+    setIsAuthenticated(isUserAuthenticated());
+  }, []);
 
   const propertyFilters = [
     { id: 'all', label: 'جميع العقارات', labelEn: 'All Properties', icon: BuildingOffice2Icon, color: 'from-purple-500 to-pink-500' },
@@ -1689,7 +1697,7 @@ const HomePage = () => {
                         )}
 
                         {/* Agent Contact */}
-                        {message.agent_phone && message.agent_phone !== 'غير متوفر' && (
+                        {hideMobileNumber(message.agent_phone, isAuthenticated) && message.agent_phone !== 'غير متوفر' && (
                           <div className="flex items-center space-x-2 rtl:space-x-reverse">
                             <UserIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
                             <div className="min-w-0 flex-1">
@@ -1727,7 +1735,7 @@ const HomePage = () => {
                           عرض التفاصيل
                         </motion.button>
 
-                        {message.agent_phone && message.agent_phone !== 'غير متوفر' && (
+                        {hideMobileNumber(message.agent_phone, isAuthenticated) && message.agent_phone !== 'غير متوفر' && (
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}

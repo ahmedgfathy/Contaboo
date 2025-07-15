@@ -37,6 +37,16 @@ const apiCall = async (endpoint, options = {}) => {
       
       console.log(`Response status: ${response.status}`);
       
+      // Check if response is JSON by content-type
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        if (!response.ok) {
+          const textResponse = await response.text();
+          throw new Error(`HTTP error! status: ${response.status}, response: ${textResponse.substring(0, 200)}`);
+        }
+        throw new Error('Response is not JSON');
+      }
+      
       const data = await response.json();
       
       if (!response.ok) {
@@ -114,6 +124,36 @@ export const authenticateUser = async (username, password) => {
     console.error('Authentication error:', error);
     return false;
   }
+};
+
+// Utility function to check if user is authenticated (for hiding sensitive data)
+export const isUserAuthenticated = () => {
+  const authStatus = localStorage.getItem('isAuthenticated');
+  const sessionTime = localStorage.getItem('sessionTime');
+  
+  if (authStatus !== 'true' || !sessionTime) {
+    return false;
+  }
+  
+  const loginTime = parseInt(sessionTime);
+  const currentTime = Date.now();
+  const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+  
+  return (currentTime - loginTime) < SESSION_DURATION;
+};
+
+// Utility function to hide mobile numbers for non-authenticated users
+export const hideMobileNumber = (phoneNumber, isAuthenticated = null) => {
+  // If authentication status is not provided, check it
+  if (isAuthenticated === null) {
+    isAuthenticated = isUserAuthenticated();
+  }
+  
+  if (!isAuthenticated || !phoneNumber) {
+    return null; // Return null to hide the entire phone field
+  }
+  
+  return phoneNumber;
 };
 
 // Enhanced authentication functions
@@ -558,6 +598,8 @@ export default {
   authenticateUser,
   logoutUser,
   validateSession,
+  isUserAuthenticated,
+  hideMobileNumber,
   insertMessage,
   updateMessage,
   deleteMessage,

@@ -19,85 +19,66 @@ module.exports = async (req, res) => {
 
   if (req.method === 'GET') {
     try {
-      let result;
-      let dataSource = 'original';
-      let migrationProgress = 'using_original';
+      // Get stats from both chat_messages and properties_import tables
+      const chatStats = await pool.query(`
+        SELECT 
+          CASE 
+            WHEN property_type LIKE '%apartment%' OR property_type LIKE '%شقة%' THEN 'apartment'
+            WHEN property_type LIKE '%villa%' OR property_type LIKE '%فيلا%' THEN 'villa'
+            WHEN property_type LIKE '%land%' OR property_type LIKE '%أرض%' THEN 'land'
+            WHEN property_type LIKE '%office%' OR property_type LIKE '%مكتب%' THEN 'office'
+            WHEN property_type LIKE '%warehouse%' OR property_type LIKE '%مخزن%' THEN 'warehouse'
+            ELSE 'other'
+          END as property_type,
+          COUNT(*) as count
+        FROM chat_messages 
+        WHERE property_type IS NOT NULL
+        GROUP BY property_type
+      `);
       
-      try {
-        // First check if normalized table has sufficient data
-        const normalizedCountResult = await pool.query('SELECT COUNT(*) FROM properties_normalized');
-        const normalizedCount = parseInt(normalizedCountResult.rows[0].count);
-        
-        console.log(`📊 Found ${normalizedCount} records in normalized table`);
-        
-        if (normalizedCount >= 1000) {
-          // Use normalized data with proper categories
-          console.log('✅ Using normalized table data');
-          result = await pool.query(`
-            SELECT 
-              pc.name_en as property_type,
-              COUNT(*) as count
-            FROM properties_normalized pn
-            LEFT JOIN property_categories pc ON pn.property_category_id = pc.id
-            WHERE pc.name_en IS NOT NULL 
-            GROUP BY pc.name_en, pc.id
-            ORDER BY count DESC
-          `);
-          dataSource = 'normalized';
-          migrationProgress = 'using_normalized';
-        } else {
-          throw new Error('Insufficient normalized data');
-        }
-        
-      } catch (normalizedError) {
-        console.log('🔄 Falling back to original table with clean data');
-        
-        // Use clean view if available, otherwise original table
-        try {
-          result = await pool.query(`
-            SELECT 
-              CASE 
-                WHEN property_category LIKE '%شقق%' OR property_category LIKE '%دوبلكس%' OR property_category LIKE '%روف%' THEN 'Compound Apartments'
-                WHEN property_category LIKE '%فيلا%' OR property_category LIKE '%تاون%' OR property_category LIKE '%توين%' THEN 'Independent Villas'
-                WHEN property_category LIKE '%أرض%' OR property_category LIKE '%اراضي%' THEN 'Land & Local Villas'
-                WHEN property_category LIKE '%محل%' OR property_category LIKE '%اداري%' THEN 'Commercial & Administrative'
-                WHEN property_category LIKE '%ساحل%' THEN 'North Coast'
-                WHEN property_category LIKE '%سخنة%' THEN 'Ain Sokhna'
-                WHEN property_category LIKE '%رحاب%' OR property_category LIKE '%مدينتي%' THEN 'Rehab & Madinaty'
-                ELSE 'Various Areas'
-              END as property_type,
-              COUNT(*) as count
-            FROM properties_clean
-            GROUP BY property_type
-            ORDER BY count DESC
-          `);
-          dataSource = 'clean_original';
-          migrationProgress = 'using_clean_data';
-        } catch (cleanError) {
-          // Final fallback to original table
-          result = await pool.query(`
-            SELECT 
-              CASE 
-                WHEN property_category LIKE '%شقق%' OR property_category LIKE '%دوبلكس%' OR property_category LIKE '%روف%' THEN 'Compound Apartments'
-                WHEN property_category LIKE '%فيلا%' OR property_category LIKE '%تاون%' OR property_category LIKE '%توين%' THEN 'Independent Villas'
-                WHEN property_category LIKE '%أرض%' OR property_category LIKE '%اراضي%' THEN 'Land & Local Villas'
-                WHEN property_category LIKE '%محل%' OR property_category LIKE '%اداري%' THEN 'Commercial & Administrative'
-                WHEN property_category LIKE '%ساحل%' THEN 'North Coast'
-                WHEN property_category LIKE '%سخنة%' THEN 'Ain Sokhna'
-                WHEN property_category LIKE '%رحاب%' OR property_category LIKE '%مدينتي%' THEN 'Rehab & Madinaty'
-                ELSE 'Various Areas'
-              END as property_type,
-              COUNT(*) as count
-            FROM properties 
-            WHERE property_category IS NOT NULL 
-              AND property_category != ''
-              AND property_category NOT LIKE '%.jpg%'
-            GROUP BY property_type
-            ORDER BY count DESC
-          `);
-          dataSource = 'original';
-          migrationProgress = 'using_raw_data';
-        }
+      const importStats = await pool.query(`
+        SELECT 
+          CASE 
+            WHEN property_type LIKE '%apartment%' OR property_type LIKE '%شقة%' THEN 'apartment'
+            WHEN property_type LIKE '%villa%' OR property_type LIKE '%فيلا%' THEN 'villa'
+            WHEN property_type LIKE '%land%' OR property_type LIKE '%أرض%' THEN 'land'
+            WHEN property_type LIKE '%office%' OR property_type LIKE '%مكتب%' THEN 'office'
+            WHEN property_type LIKE '%warehouse%' OR property_type LIKE '%مخزن%' THEN 'warehouse'
+            ELSE 'other'
+          END as property_type,
+          COUNT(*) as count
+        FROM properties_import 
+        WHERE property_type IS NOT NULL
+          AND property_name IS NOT NULL 
+          AND property_name != ''
+        GROUP BY property_type
+      `);
+      
+      // Combine and aggregate stats
+      const combinedStats = {};
+      
+      chatStats.rows.forEach(row => {
+        combinedStats[row.property_type] = (combinedStats[row.property_type] || 0) + parseInt(row.count);
+      });
+      
+      importStats.rows.forEach(row => {
+        combinedStats[row.property_type] = (combinedStats[row.property_type] || 0) + parseInt(row.count);
+      });
+      
+      const stats = Object.entries(combinedStats).map(([property_type, count]) => ({
+        property_type,
+        count
+      }));
+
+      res.status(200).json({ success: true, stats });
+    } catch (error) {
+      console.error('Stats error:', error);
+      res.status(500).json({ success: false, message: 'Database error' });
+    }
+  } else {
+    res.status(405).json({ success: false, message: 'Method not allowed' });
+  }
+};
       }
 
       const stats = result.rows;

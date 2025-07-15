@@ -22,7 +22,7 @@ const CSVImport = ({ isOpen, onClose, onImportComplete }) => {
   const [errorMessage, setErrorMessage] = useState('');
   const [importStats, setImportStats] = useState(null);
 
-  // Parse CSV file
+  // Parse CSV file with better comma handling
   const parseCSV = useCallback((file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -36,31 +36,41 @@ const CSVImport = ({ isOpen, onClose, onImportComplete }) => {
           return;
         }
 
+        // Improved CSV parsing - handle quoted fields with commas
+        const parseCSVLine = (line) => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          
+          result.push(current.trim());
+          return result.map(field => field.replace(/^["']|["']$/g, ''));
+        };
+
         // Parse headers (first line)
-        const headerLine = lines[0];
-        const parsedHeaders = headerLine.split(',').map(header => 
-          header.trim().replace(/['"]/g, '')
-        );
+        const parsedHeaders = parseCSVLine(lines[0]);
         
-        // Parse data rows
-        const dataRows = lines.slice(1).map(line => {
-          const values = line.split(',').map(value => 
-            value.trim().replace(/['"]/g, '')
-          );
-          const row = {};
-          parsedHeaders.forEach((header, index) => {
-            row[header] = values[index] || '';
-          });
-          return row;
-        });
+        // Parse data rows - convert to arrays instead of objects for backend compatibility
+        const dataRows = lines.slice(1).map(line => parseCSVLine(line));
 
         setHeaders(parsedHeaders);
         setCsvData(dataRows);
         setImportStatus('previewing');
         
-        // Auto-detect table name from filename or headers
-        const fileName = file.name.replace(/\.(csv|xlsx)$/i, '');
-        setTableName(fileName.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
+        // Set table name to properties_import for real estate data
+        setTableName('properties_import');
         
       } catch (error) {
         console.error('CSV parsing error:', error);
@@ -144,25 +154,38 @@ const CSVImport = ({ isOpen, onClose, onImportComplete }) => {
       
       console.log('CSV Import Success:', result);
       
-      setImportStats({
-        imported: result.imported || csvData.length,
-        total: csvData.length,
-        table: tableName
-      });
-      setImportStatus('success');
-      
-      // Call completion callback after a short delay
-      setTimeout(() => {
-        onImportComplete && onImportComplete({
-          imported: result.imported || csvData.length,
+      if (result.success) {
+        setImportStats({
+          imported: result.imported || result.stats?.successCount || csvData.length,
           total: csvData.length,
-          table: tableName
+          table: tableName,
+          errors: result.errors || []
         });
-      }, 2000);
+        setImportStatus('success');
+        
+        // Call completion callback after a short delay
+        setTimeout(() => {
+          onImportComplete && onImportComplete({
+            imported: result.imported || result.stats?.successCount || csvData.length,
+            total: csvData.length,
+            table: tableName
+          });
+        }, 2000);
+      } else {
+        throw new Error(result.message || 'Import failed');
+      }
       
     } catch (error) {
       console.error('Import error details:', error);
-      setErrorMessage('فشل في استيراد البيانات إلى قاعدة البيانات: ' + (error.message || error));
+      let errorMsg = 'فشل في استيراد البيانات إلى قاعدة البيانات';
+      
+      if (error.message.includes('<!DOCTYPE')) {
+        errorMsg += ': خطأ في الخادم - يرجى المحاولة مرة أخرى';
+      } else {
+        errorMsg += ': ' + (error.message || error);
+      }
+      
+      setErrorMessage(errorMsg);
       setImportStatus('error');
     }
   };
