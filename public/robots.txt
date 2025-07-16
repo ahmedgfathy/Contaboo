@@ -1,0 +1,33 @@
+User-agent: *
+Allow: /
+
+# Allow specific important pages
+Allow: /property/*
+Allow: /search*
+Allow: /api/properties*
+Allow: /api/search*
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /dashboard/
+Disallow: /api/auth/
+Disallow: /api/admin/
+Disallow: /private/
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://contaboo.com/sitemap.xml
+Sitemap: https://contaboo.com/sitemap-properties.xml
+Sitemap: https://contaboo.com/sitemap-locations.xml
+
+# Block common bot patterns that might waste resources
+User-agent: Baiduspider
+Crawl-delay: 5
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: AhrefsBot
+Crawl-delay: 10

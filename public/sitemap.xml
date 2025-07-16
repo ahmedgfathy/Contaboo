@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap>
+    <loc>https://contaboo.com/api/sitemap?type=main</loc>
+    <lastmod>2025-07-16</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://contaboo.com/api/sitemap?type=properties</loc>
+    <lastmod>2025-07-16</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>https://contaboo.com/api/sitemap?type=locations</loc>
+    <lastmod>2025-07-16</lastmod>
+  </sitemap>
+</sitemapindex>

@@ -27,7 +27,9 @@ import { getAllProperties, searchProperties, getPropertyTypeStats, hideMobileNum
 import PropertyHeroSlider from './PropertyHeroSlider';
 import AIFloatingButton from './AIFloatingButton';
 import AIChatAssistant from './AIChatAssistant';
+import SEOHead from './SEOHead';
 import { isAIAvailable } from '../services/aiService';
+import { generateSEOHashtags } from './SEOHead';
 
 // Virtual property image generator
 const getVirtualPropertyImage = (propertyType, messageId) => {
@@ -603,9 +605,48 @@ const HomePage = () => {
     propertyListing: 'Property Listing'
   };
 
+  // Generate SEO hashtags for homepage
+  const homePageHashtags = [
+    '#عقارات_مصر', '#كونتابو', '#Contaboo', '#عقارات_للبيع',
+    '#RealEstateEgypt', '#PropertiesForSale', '#EgyptRealEstate',
+    '#شقق_للبيع', '#فيلات_للبيع', '#أراضي_للبيع',
+    '#القاهرة', '#الجيزة', '#الإسكندرية', '#التجمع_الخامس',
+    '#ذكاء_اصطناعي', '#AIRealEstate', '#SmartSearch'
+  ];
+
   return (
-    <div 
-      className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 ${language === 'arabic' ? 'font-cairo lang-arabic' : 'font-roboto lang-english'}`} 
+    <>
+      {/* SEO Head Component */}
+      <SEOHead
+        title={language === 'arabic' 
+          ? 'كونتابو - منصة العقارات الذكية في مصر | شقق، فيلات، أراضي للبيع'
+          : 'Contaboo - Smart Real Estate Platform in Egypt | Apartments, Villas, Land for Sale'
+        }
+        description={language === 'arabic'
+          ? 'اكتشف أفضل العقارات في مصر مع كونتابو. آلاف الشقق والفيلات والأراضي للبيع. بحث ذكي بالذكاء الاصطناعي، أسعار تنافسية، ونظام CRM متطور للسماسرة'
+          : 'Discover the best properties in Egypt with Contaboo. Thousands of apartments, villas, and land for sale. AI-powered smart search, competitive prices, and advanced CRM system for brokers'
+        }
+        keywords={language === 'arabic'
+          ? 'عقارات مصر, شقق للبيع, فيلات للبيع, أراضي للبيع, عقارات القاهرة, عقارات الجيزة, عقارات الإسكندرية, التجمع الخامس, مدينة نصر, كونتابو, بحث ذكي, ذكاء اصطناعي'
+          : 'real estate egypt, apartments for sale, villas for sale, land for sale, cairo real estate, giza real estate, alexandria real estate, new cairo, nasr city, contaboo, smart search, artificial intelligence'
+        }
+        image="https://contaboo.com/og-image.jpg"
+        hashtags={homePageHashtags}
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Contaboo Real Estate",
+          "url": "https://contaboo.com",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://contaboo.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }}
+      />
+      
+      <div 
+        className={`min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 ${language === 'arabic' ? 'font-cairo lang-arabic' : 'font-roboto lang-english'}`} 
       dir={language === 'arabic' ? 'rtl' : 'ltr'}
       lang={language === 'arabic' ? 'ar' : 'en'}
     >
@@ -1766,7 +1807,8 @@ const HomePage = () => {
 
       {/* AI Floating Assistant Button */}
       <AIFloatingButton language={language} />
-    </div>
+      </div>
+    </>
   );
 };
 
