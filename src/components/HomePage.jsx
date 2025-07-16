@@ -26,7 +26,6 @@ import {
 import { getAllProperties, searchProperties, getPropertyTypeStats, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
 import PropertyHeroSlider from './PropertyHeroSlider';
 import AIFloatingButton from './AIFloatingButton';
-import AIDashboard from './AIDashboard';
 import AIChatAssistant from './AIChatAssistant';
 import { isAIAvailable } from '../services/aiService';
 
@@ -802,7 +801,7 @@ const HomePage = () => {
                   }
                 </motion.p>
 
-                {/* Features - Simplified */}
+                {/* Features */}
                 <motion.div 
                   className="flex flex-wrap justify-center lg:justify-start gap-2 sm:gap-4 px-4 sm:px-0"
                   initial={{ opacity: 0, y: 20 }}
@@ -810,6 +809,18 @@ const HomePage = () => {
                   transition={{ duration: 0.8, delay: 0.5 }}
                 >
                   {[
+                    { 
+                      icon: CpuChipIcon, 
+                      text: language === 'arabic' ? 'بحث ذكي' : 'Smart Search',
+                      action: () => setIsAIChatOpen(true),
+                      isAI: true
+                    },
+                    { 
+                      icon: ChartBarIcon, 
+                      text: language === 'arabic' ? 'إحصائيات متقدمة' : 'Advanced Analytics',
+                      action: () => document.getElementById('properties-section').scrollIntoView({ behavior: 'smooth' }),
+                      isAI: false
+                    },
                     { 
                       icon: StarIcon, 
                       text: language === 'arabic' ? 'عقارات مميزة' : 'Premium Properties',
@@ -822,26 +833,69 @@ const HomePage = () => {
                       onClick={feature.action}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="flex items-center gap-2 px-3 sm:px-4 py-2 backdrop-blur-sm rounded-full border shadow-lg text-sm sm:text-base transition-all duration-300 cursor-pointer bg-white/80 border-gray-200 text-gray-700 hover:bg-white/90"
+                      className={`flex items-center gap-2 px-3 sm:px-4 py-2 backdrop-blur-sm rounded-full border shadow-lg text-sm sm:text-base transition-all duration-300 cursor-pointer ${
+                        feature.isAI && isAIAvailable()
+                          ? 'bg-gradient-to-r from-blue-500/90 to-purple-600/90 border-blue-300/50 text-white hover:from-blue-600/90 hover:to-purple-700/90'
+                          : feature.isAI && !isAIAvailable()
+                          ? 'bg-gray-500/80 border-gray-400/50 text-gray-300 cursor-not-allowed'
+                          : 'bg-white/80 border-gray-200 text-gray-700 hover:bg-white/90'
+                      }`}
+                      disabled={feature.isAI && !isAIAvailable()}
+                      title={feature.isAI && !isAIAvailable() ? (language === 'arabic' ? 'يتطلب تكوين مفتاح OpenAI API' : 'Requires OpenAI API key configuration') : ''}
                     >
-                      <feature.icon className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                      <feature.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                        feature.isAI && isAIAvailable() 
+                          ? 'text-blue-200' 
+                          : feature.isAI && !isAIAvailable()
+                          ? 'text-gray-400'
+                          : 'text-purple-600'
+                      }`} />
                       <span className="font-medium">{feature.text}</span>
+                      {feature.isAI && isAIAvailable() && (
+                        <SparklesIcon className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-300 animate-pulse" />
+                      )}
                     </motion.button>
                   ))}
                 </motion.div>
 
-                {/* CTA Buttons - Simplified */}
+                {/* CTA Buttons */}
                 <motion.div 
                   className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start px-4 sm:px-0"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.6 }}
                 >
+                  {/* Smart Search AI Button - Primary CTA */}
+                  {isAIAvailable() && (
+                    <motion.button
+                      onClick={() => setIsAIChatOpen(true)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 via-purple-600 to-indigo-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 justify-center text-sm sm:text-base group relative overflow-hidden"
+                    >
+                      {/* Animated background shine effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 transform translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                      <CpuChipIcon className="h-4 w-4 sm:h-5 sm:w-5 text-blue-200" />
+                      <span>{language === 'arabic' ? 'بحث ذكي بالذكاء الاصطناعي' : 'AI Smart Search'}</span>
+                      <SparklesIcon className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-300 animate-pulse" />
+                    </motion.button>
+                  )}
+                  
+                  <motion.button
+                    onClick={() => navigate('/login')}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 justify-center text-sm sm:text-base"
+                  >
+                    <UserIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                    {texts.login}
+                  </motion.button>
+                  
                   <motion.button
                     onClick={() => document.getElementById('properties-section').scrollIntoView({ behavior: 'smooth' })}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center gap-3 justify-center text-sm sm:text-base"
+                    className="px-6 sm:px-8 py-3 sm:py-4 bg-white/90 backdrop-blur-sm text-gray-800 font-bold rounded-2xl border-2 border-gray-300 hover:border-purple-400 shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-3 justify-center text-sm sm:text-base"
                   >
                     <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     {language === 'arabic' ? 'استكشف العقارات' : 'Explore Properties'}
@@ -1073,6 +1127,21 @@ const HomePage = () => {
                         </motion.button>
                       )}
                     </div>
+
+                    {/* Quick Stats */}
+                    <motion.div 
+                      className="mt-4 sm:mt-6 grid grid-cols-3 gap-2 sm:gap-4"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: 0.7 }}
+                    >
+                      {stats.slice(0, 3).map((stat, index) => (
+                        <div key={index} className="text-center p-2 sm:p-3 bg-gray-50 rounded-lg sm:rounded-xl">
+                          <div className="text-base sm:text-lg font-bold text-purple-600">{stat.count?.toLocaleString() || '0'}</div>
+                          <div className="text-xs text-gray-600">{stat.property_type === 'apartment' ? (language === 'arabic' ? 'شقق' : 'Apartments') : stat.property_type === 'villa' ? (language === 'arabic' ? 'فيلات' : 'Villas') : (language === 'arabic' ? 'أراضي' : 'Land')}</div>
+                        </div>
+                      ))}
+                    </motion.div>
                   </motion.div>
                 </div>
               </motion.div>
@@ -1084,8 +1153,6 @@ const HomePage = () => {
       {/* Properties Section */}
       <div id="properties-section" className="relative z-20 bg-gradient-to-b from-transparent to-slate-900/50">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
-
-        {/* Property Type Filter Cards - Enhanced Design */}
 
         {/* Property Type Filter Cards - Enhanced Design */}
         <motion.div 
