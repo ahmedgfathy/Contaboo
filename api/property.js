@@ -43,7 +43,7 @@ export default async function handler(req, res) {
             pt.name_english as property_type_name_en,
             a.name_arabic as area_name_ar,
             a.name_english as area_name_en,
-            ag.name as agent_name,
+            ag.name as broker_name,
             ag.phone as agent_phone,
             ag.description as agent_description
           FROM properties p

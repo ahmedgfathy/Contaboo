@@ -100,7 +100,7 @@ module.exports = async (req, res) => {
       description: property.description || property.message_text || '',
       
       // Contact info
-      agent_name: property.agent_name || 'غير محدد',
+      broker_name: property.broker_name || 'غير محدد',
       phone_number: property.phone_number || '',
       contact_email: property.contact_email || '',
       
@@ -111,7 +111,7 @@ module.exports = async (req, res) => {
       // Chat-specific fields
       message_text: property.message_text || '',
       chat_date: property.chat_date || '',
-      sender_name: property.sender_name || property.agent_name || '',
+      sender_name: property.sender_name || property.broker_name || '',
       
       // Import-specific fields
       imported_at: property.imported_at || '',

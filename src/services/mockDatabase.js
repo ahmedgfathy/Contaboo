@@ -19,13 +19,13 @@ const generatePhoneNumber = () => {
   return `0${Math.floor(Math.random() * 2) + 1}${Math.floor(Math.random() * 9000000000) + 1000000000}`;
 };
 
-const generateAgentDescription = (agentName) => {
+const generateAgentDescription = (brokerName) => {
   const descriptions = [
-    `${agentName} - سمسار عقاري محترف متخصص في العقارات السكنية والتجارية`,
-    `${agentName} - خبرة أكثر من 10 سنوات في السوق العقاري المصري`,
-    `${agentName} - وكيل عقاري معتمد ومتخصص في الاستثمار العقاري`,
-    `${agentName} - مطور عقاري ومستشار في شراء وبيع العقارات`,
-    `${agentName} - سمسار معتمد لدى الشهر العقاري والتطوير العمراني`
+    `${brokerName} - سمسار عقاري محترف متخصص في العقارات السكنية والتجارية`,
+    `${brokerName} - خبرة أكثر من 10 سنوات في السوق العقاري المصري`,
+    `${brokerName} - وكيل عقاري معتمد ومتخصص في الاستثمار العقاري`,
+    `${brokerName} - مطور عقاري ومستشار في شراء وبيع العقارات`,
+    `${brokerName} - سمسار معتمد لدى الشهر العقاري والتطوير العمراني`
   ];
   
   return descriptions[Math.floor(Math.random() * descriptions.length)];

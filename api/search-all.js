@@ -49,11 +49,11 @@ module.exports = async (req, res) => {
         LOWER(COALESCE(cm.location, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(cm.area, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(cm.price, '')) LIKE LOWER($${paramIndex}) OR
-        LOWER(COALESCE(cm.agent_name, '')) LIKE LOWER($${paramIndex}) OR
+        LOWER(COALESCE(cm.broker_name, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(pi.property_type, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(pi.location, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(pi.description, '')) LIKE LOWER($${paramIndex}) OR
-        LOWER(COALESCE(pi.agent_name, '')) LIKE LOWER($${paramIndex})
+        LOWER(COALESCE(pi.broker_name, '')) LIKE LOWER($${paramIndex})
       )`);
       params.push(searchTerm);
       paramIndex++;
@@ -83,7 +83,7 @@ module.exports = async (req, res) => {
           cm.area,
           cm.location,
           cm.message_text as description,
-          cm.agent_name,
+          cm.broker_name,
           cm.phone_number,
           cm.timestamp as created_at,
           cm.message_text,
@@ -110,12 +110,12 @@ module.exports = async (req, res) => {
           pi.area,
           pi.location,
           pi.description,
-          pi.agent_name,
+          pi.broker_name,
           pi.phone_number,
           pi.imported_at as created_at,
           pi.description as message_text,
           NULL as chat_date,
-          pi.agent_name as sender_name,
+          pi.broker_name as sender_name,
           pi.imported_at,
           pi.reference_id,
           pi.status,
@@ -191,12 +191,12 @@ module.exports = async (req, res) => {
       area: row.area_display || row.area || '',
       location: row.location || '',
       description: row.description || row.message_text || '',
-      agent_name: row.agent_name || 'غير محدد',
+      broker_name: row.broker_name || 'غير محدد',
       phone_number: row.phone_number_display || row.phone_number || '',
       created_at: row.created_at,
       message_text: row.message_text || '',
       chat_date: row.chat_date,
-      sender_name: row.sender_name || row.agent_name || '',
+      sender_name: row.sender_name || row.broker_name || '',
       imported_at: row.imported_at,
       reference_id: row.reference_id,
       status: row.status,

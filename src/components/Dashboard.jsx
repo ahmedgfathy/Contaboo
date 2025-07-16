@@ -434,8 +434,8 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
   };
 
   // Function to clean agent names from phone numbers
-  const cleanAgentName = (agentName) => {
-    if (!agentName) return agentName;
+  const cleanAgentName = (brokerName) => {
+    if (!brokerName) return brokerName;
     
     // Remove Egyptian phone numbers in various formats
     // Patterns: +20 XX XXXXXXXX, 01XXXXXXXXX, +201XXXXXXXXX, etc.
@@ -450,7 +450,7 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
       /\d{4}\s*\d{3}\s*\d{4}/g   // XXXX XXX XXXX format
     ];
     
-    let cleanedName = agentName;
+    let cleanedName = brokerName;
     
     // Remove all phone number patterns
     phonePatterns.forEach(pattern => {
@@ -463,7 +463,7 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
       .trim()                       // Remove leading/trailing spaces
       .replace(/\s+/g, ' ');        // Replace multiple spaces with single space
     
-    return cleanedName || agentName; // Return original if cleaning results in empty string
+    return cleanedName || brokerName; // Return original if cleaning results in empty string
   };
 
   const renderSortIcon = (field) => {

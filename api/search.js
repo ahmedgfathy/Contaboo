@@ -32,7 +32,7 @@ export default async function handler(req, res) {
           created_at,
           property_type,
           'chat' as source_type,
-          sender as agent_name,
+          sender as broker_name,
           message as full_description
         FROM chat_messages 
         WHERE 1=1
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
           created_time as created_at,
           property_category as property_type,
           'property' as source_type,
-          name as agent_name,
+          name as broker_name,
           description as full_description,
           regions,
           unit_price,
@@ -99,7 +99,7 @@ export default async function handler(req, res) {
         ...chatResults.rows.map(row => ({
           id: `chat_${row.id}`,
           message: row.message_text,
-          sender: row.sender_name || row.agent_name,
+          sender: row.sender_name || row.broker_name,
           timestamp: row.created_at,
           property_type: row.property_type || 'other',
           location: extractLocationFromMessage(row.message_text),
@@ -111,7 +111,7 @@ export default async function handler(req, res) {
         ...propertyResults.rows.map(row => ({
           id: `property_${row.id}`,
           message: row.message_text || 'عقار متاح للبيع',
-          sender: row.agent_name || 'وكيل عقاري',
+          sender: row.broker_name || 'وكيل عقاري',
           timestamp: row.created_at,
           property_type: mapPropertyCategory(row.property_type),
           location: row.regions || 'غير محدد',

@@ -1,12 +1,16 @@
-const { Pool } = require('pg');
-const fs = require('fs');
-const path = require('path');
+import { Pool } from 'pg';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config();
 
 async function runMigration() {
   console.log('🚀 Starting Real Estate Chat App Migration...');
-  
-  // Load environment variables
-  require('dotenv').config();
   
   if (!process.env.DATABASE_URL) {
     console.error('❌ DATABASE_URL not found. Please set it in .env file.');
@@ -67,9 +71,5 @@ async function runMigration() {
   }
 }
 
-// Run if called directly
-if (require.main === module) {
-  runMigration();
-}
-
-module.exports = { runMigration };
+// Run migration
+runMigration();
