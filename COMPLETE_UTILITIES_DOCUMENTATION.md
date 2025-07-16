@@ -248,4 +248,180 @@ const hashtagMatches = text.match(SEO_PATTERNS.detect_hashtags);
 - ✅ Provide fallbacks for failed extractions
 - ✅ Test with real-world data regularly
 
-This comprehensive utility system provides robust mobile privacy protection and SEO metadata extraction capabilities for your Real Estate Chat Search Application.
+## Enhanced Data Quality Features
+
+### New Pattern Categories
+
+#### 1. Duplicate Field Detection
+- **duplicate_field_values**: Detects fields with identical names and values
+- **repeated_property_entries**: Finds duplicate property or listing IDs
+- **repeated_form_elements**: Identifies duplicate form input elements
+
+#### 2. HTML Structure Issues
+- **repeated_form_elements**: Duplicate form inputs with same name attributes
+- **repeated_paragraphs**: Identical paragraph content
+- **malformed_html_tags**: Tags missing proper closing elements
+- **broken_links**: Links pointing to images/files without proper anchor closure
+
+#### 3. Content Quality Issues
+- **duplicate_text_blocks**: Large blocks of repeated text (20+ characters)
+- **placeholder_content**: Unresolved placeholder text (TODO, PLACEHOLDER, XXX, TBD)
+- **incomplete_data_entries**: Fields with names but no values
+- **empty_form_fields**: Form inputs with empty values
+
+#### 4. Mobile Number Quality
+- **incomplete_mobile_numbers**: Partial or malformed Egyptian mobile numbers
+- **malformed_mobile_format**: Numbers with inconsistent separators
+
+#### 5. Arabic Text Issues
+- **mixed_language_confusion**: Arabic and English mixed within single words
+- **broken_arabic_text**: Arabic text interrupted by English characters
+
+#### 6. Data Validation
+- **invalid_price_format**: Price fields containing non-numeric characters
+- **inconsistent_units**: Mixed unit formats (sqm vs sqft) in same content
+- **missing_currency_indicators**: Numbers without currency symbols
+
+### Enhanced Detection Functions
+
+#### Comprehensive Analysis
+```javascript
+import { analyzeDataQuality } from '../utils/dataQualityUtils.js';
+
+const analysis = analyzeDataQuality(data);
+// Returns detailed report with all issue types, quality score, and suggestions
+```
+
+#### Specific Detection Methods
+```javascript
+// Detect duplicate field values
+const duplicateValues = detectDuplicateFieldValues(content);
+
+// Find malformed HTML tags
+const malformedHTML = detectMalformedHTML(htmlContent);
+
+// Identify incomplete mobile numbers
+const incompleteMobiles = detectIncompleteMobileNumbers(content);
+
+// Check for mixed language issues
+const languageIssues = detectMixedLanguageIssues(content);
+
+// Validate price formats
+const invalidPrices = detectInvalidPriceFormats(content);
+
+// Find inconsistent unit formats
+const inconsistentUnits = detectInconsistentUnits(content);
+
+// Detect placeholder content
+const placeholders = detectPlaceholderContent(htmlContent);
+```
+
+### Enhanced Cleaning Functions
+
+#### Auto-Clean with All Patterns
+```javascript
+import { enhancedAutoCleanData } from '../utils/dataQualityUtils.js';
+
+const cleaningResult = enhancedAutoCleanData(data);
+// Returns: originalQuality, finalQuality, improvement, actionsPerformed, cleanedData
+```
+
+#### Specific Cleaning Methods
+```javascript
+// Clean duplicate field values
+const cleaned1 = cleanDuplicateFieldValues(content);
+
+// Fix malformed HTML tags
+const cleaned2 = fixMalformedHTML(htmlContent);
+
+// Remove incomplete mobile numbers
+const cleaned3 = cleanIncompleteMobileNumbers(content);
+
+// Fix mixed language issues
+const cleaned4 = fixMixedLanguageIssues(content);
+
+// Remove placeholder content
+const cleaned5 = cleanPlaceholderContent(htmlContent);
+```
+
+### Quality Score Calculation
+
+The enhanced quality scoring system deducts points based on issue severity:
+
+- **Duplicate fields**: -20 points
+- **Malformed HTML**: -20 points  
+- **Placeholder content**: -15 points
+- **Repeated blocks**: -15 points
+- **Duplicate field values**: -15 points
+- **Invalid price formats**: -12 points
+- **Empty fields**: -10 points
+- **Incomplete mobile numbers**: -10 points
+- **Mixed language issues**: -8 points
+- **Inline repetitions**: -5 points
+- **Inconsistent units**: -5 points
+
+Quality ranges:
+- **90-100%**: Excellent
+- **75-89%**: Good  
+- **60-74%**: Fair
+- **0-59%**: Poor
+
+### Property Validation
+
+Enhanced property validation checks for:
+- **Required fields**: title, location, price, property_type
+- **Optional fields**: description, agent_name, mobile, area_size, rooms
+- **Completeness score**: Percentage of filled fields
+- **Validation suggestions**: Specific recommendations for improvement
+
+### Testing Component
+
+The `EnhancedDataQualityTest` component provides:
+- Sample data with various quality issues
+- Real-time analysis and cleaning
+- Visual quality score indicators
+- Detailed issue breakdowns
+- Specific detection testing
+- Property validation results
+- Before/after cleaning comparison
+
+### Real-World Application Examples
+
+#### Egyptian Real Estate Data
+```javascript
+// Sample problematic data
+const propertyData = {
+  title: 'Villa for Sale',
+  title_duplicate: 'Villa for Sale', // Duplicate field
+  location: 'New Cairo',
+  price: 'ABC123', // Invalid price format
+  mobile: '+20 12 incomplete', // Incomplete mobile
+  description: 'Villa in القاهرة New Cairo', // Mixed language
+  area_size: '200 sqm and 2000 sqft', // Inconsistent units
+  status: 'TODO' // Placeholder content
+};
+
+// Analyze and clean
+const analysis = analyzeDataQuality(propertyData);
+const cleaningResult = enhancedAutoCleanData(propertyData);
+```
+
+#### HTML Content Cleaning
+```javascript
+// Sample HTML with issues
+const htmlContent = `
+  <div class="property-info">
+    <p>Price: ABC123</p>
+    <p>Price: ABC123</p> <!-- Duplicate -->
+    <label>Location</label><input value=""> <!-- Empty -->
+    <p>Contact: +20 12 incomplete</p> <!-- Incomplete mobile -->
+    <p>Status: TODO</p> <!-- Placeholder -->
+    <div>null</div> <!-- Empty content -->
+  </div>
+`;
+
+// Clean and analyze
+const cleaned = enhancedAutoCleanData(htmlContent);
+```
+
+This enhanced data quality system provides comprehensive coverage for real-world data issues commonly found in Arabic real estate applications, with automated detection, cleaning, and validation capabilities.

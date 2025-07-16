@@ -33,6 +33,7 @@ import CSVPropertyDetailsModal from './CSVPropertyDetailsModal';
 import EditPropertyModal from './EditPropertyModal';
 import PropertyDetailsModal from './PropertyDetailsModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+// import AIAnalytics from './AIAnalytics'; // Temporarily disabled
 
 // Virtual property image generator
 const getVirtualPropertyImage = (propertyType, messageId) => {
@@ -1461,8 +1462,8 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
         onDelete={confirmDeleteProperty}
       />
 
-      {/* AI Analytics Component - Now Integrated */}
-      <AIAnalytics />
+      {/* AI Analytics Component - Temporarily disabled until implementation */}
+      {/* <AIAnalytics /> */}
     </div>
   );
 };
