@@ -58,8 +58,8 @@ export default async function handler(req, res) {
         paramIndex++;
       }
       
-      // Order by timestamp or id (use whichever column exists)
-      query += ' ORDER BY COALESCE(created_at, timestamp, id) DESC LIMIT 1000';
+      // Order by any available timestamp column
+      query += ' ORDER BY id DESC LIMIT 1000';
       
       const result = await pool.query(query, params);
       res.status(200).json(result.rows);
