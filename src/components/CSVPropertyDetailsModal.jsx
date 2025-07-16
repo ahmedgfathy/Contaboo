@@ -11,7 +11,7 @@ import {
   CalendarIcon,
   UserIcon
 } from '@heroicons/react/24/outline';
-import { isUserAuthenticated, hideMobileNumber } from '../services/apiService';
+import { isUserAuthenticated, hideMobileNumber, maskMobile } from '../services/apiService';
 
 const CSVPropertyDetailsModal = ({ property, isOpen, onClose }) => {
   if (!property) return null;
@@ -165,18 +165,18 @@ const CSVPropertyDetailsModal = ({ property, isOpen, onClose }) => {
                         <span className="font-medium">{property.Name}</span>
                       </p>
                     )}
-                    {hideMobileNumber(property.Mobile_No, isAuthenticated) && (
+                    {property.Mobile_No && (
                       <p className="flex items-center gap-2">
                         <PhoneIcon className="w-4 h-4 text-green-600" />
                         <span className="text-gray-600">الجوال:</span>
-                        <span className="font-medium direction-ltr">{property.Mobile_No}</span>
+                        <span className="font-medium direction-ltr">{maskMobile(property.Mobile_No, isAuthenticated)}</span>
                       </p>
                     )}
-                    {hideMobileNumber(property.Tel, isAuthenticated) && (
+                    {property.Tel && (
                       <p className="flex items-center gap-2">
                         <PhoneIcon className="w-4 h-4 text-blue-600" />
                         <span className="text-gray-600">الهاتف:</span>
-                        <span className="font-medium direction-ltr">{property.Tel}</span>
+                        <span className="font-medium direction-ltr">{maskMobile(property.Tel, isAuthenticated)}</span>
                       </p>
                     )}
                   </div>

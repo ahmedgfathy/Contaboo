@@ -14,7 +14,7 @@ import {
   ShareIcon,
   HeartIcon
 } from '@heroicons/react/24/outline';
-import { getPropertyById, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
+import { getPropertyById, hideMobileNumber, maskMobile, isUserAuthenticated } from '../services/apiService';
 
 const PropertyDetailPage = () => {
   const { id } = useParams();
@@ -645,29 +645,29 @@ const PropertyDetailPage = () => {
                   </div>
                 )}
 
-                {hideMobileNumber(property.mobile_no, isAuthenticated) && (
+                {property.mobile_no && (
                   <div className="space-y-1">
                     <p className="text-gray-400 text-sm">رقم الموبايل</p>
                     <a href={`tel:${property.mobile_no}`} className="text-green-400 font-medium hover:text-green-300">
-                      {property.mobile_no}
+                      {maskMobile(property.mobile_no, isAuthenticated)}
                     </a>
                   </div>
                 )}
 
-                {hideMobileNumber(property.agent_phone, isAuthenticated) && property.agent_phone !== 'غير متوفر' && (
+                {property.agent_phone && property.agent_phone !== 'غير متوفر' && (
                   <div className="space-y-1">
                     <p className="text-gray-400 text-sm">هاتف الوكيل</p>
                     <a href={`tel:${property.agent_phone}`} className="text-green-400 font-medium hover:text-green-300">
-                      {property.agent_phone}
+                      {maskMobile(property.agent_phone, isAuthenticated)}
                     </a>
                   </div>
                 )}
 
-                {hideMobileNumber(property.tel, isAuthenticated) && (
+                {property.tel && (
                   <div className="space-y-1">
                     <p className="text-gray-400 text-sm">الهاتف الأرضي</p>
                     <a href={`tel:${property.tel}`} className="text-green-400 font-medium hover:text-green-300">
-                      {property.tel}
+                      {maskMobile(property.tel, isAuthenticated)}
                     </a>
                   </div>
                 )}

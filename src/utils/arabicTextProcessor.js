@@ -112,21 +112,46 @@ export const extractPrice = (text) => {
 
 // Function to extract phone numbers from text
 export const extractPhoneNumber = (text) => {
-  // Egyptian phone number patterns - more comprehensive approach:
-  // Match any sequence starting with 01 or +201 followed by digits (with optional spaces/dashes)
-  const phoneRegex = /(?:\+201[0-9\s-]{8,}|01[0-9\s-]{8,})/g;
-  const matches = text.match(phoneRegex);
+  // Enhanced Egyptian phone number patterns to match formats seen in the app:
+  const phonePatterns = [
+    /(?:\+201[0-9\s-]{8,}|01[0-9\s-]{8,})/g,        // Standard: +201234567890, 01234567890
+    /\d{8}\s*\d{2}\s*\d{2}\+?/g,                     // Pattern: 26433244 10 20+
+    /\d{3}\s*\d{3}\s*\d{4}/g,                        // Pattern: 123 456 7890
+    /\+?20\s*1[0-5]\s*\d{3}\s*\d{4}/g,              // International with spaces
+    /01[0-5]\s*\d{3}\s*\d{4}/g,                      // Local with spaces
+    /\d{2}\s*\d{3}\s*\d{3}\s*\d{3}/g                // Split format: 01 012 345 678
+  ];
   
-  if (matches && matches.length > 0) {
-    // Clean up the phone number - remove spaces, dashes, country code
-    let phone = matches[0];
-    phone = phone.replace(/[\s-]/g, ''); // Remove spaces and dashes
-    phone = phone.replace(/^\+201/, '01'); // Replace +201 with 01
-    
-    // Accept Egyptian phone numbers (11 digits: 01X-XXXX-XXXX)
-    // Also accept some variations that might be 12 digits
-    if (phone.match(/^01[0-9]{9,10}$/) && phone.length >= 11 && phone.length <= 12) {
-      return phone;
+  for (const phoneRegex of phonePatterns) {
+    const matches = text.match(phoneRegex);
+    if (matches && matches.length > 0) {
+      // Clean up the phone number - remove spaces, dashes, special characters
+      let phone = matches[0];
+      phone = phone.replace(/[\s\-\+]/g, ''); // Remove spaces, dashes, plus signs
+      
+      // Handle different formats
+      if (phone.startsWith('20')) {
+        // International format: remove country code
+        phone = phone.substring(2);
+        if (!phone.startsWith('0')) {
+          phone = '0' + phone;
+        }
+      }
+      
+      // Validate that it looks like an Egyptian mobile number
+      // Accept both 11 and 12 digit numbers (some variations exist)
+      if (phone.match(/^01[0-9]{9,10}$/) && phone.length >= 11 && phone.length <= 12) {
+        return phone;
+      }
+      
+      // For patterns like "26433244 10 20+", try to reconstruct
+      if (phone.length >= 10 && !phone.startsWith('01')) {
+        // Try to add Egyptian mobile prefix
+        const testPhone = '01' + phone.substring(0, 9);
+        if (testPhone.length === 11) {
+          return testPhone;
+        }
+      }
     }
   }
   

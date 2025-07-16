@@ -1,5 +1,6 @@
 // Real API service for backend communication
 // This replaces the mock database with actual HTTP calls to the Neon database
+import { maskMobile as utilsMaskMobile } from '../utils/mobileUtils.js';
 
 // Use environment variable or fallback to localhost for development
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
@@ -149,11 +150,25 @@ export const hideMobileNumber = (phoneNumber, isAuthenticated = null) => {
     isAuthenticated = isUserAuthenticated();
   }
   
-  if (!isAuthenticated || !phoneNumber) {
-    return null; // Return null to hide the entire phone field
+  if (!phoneNumber) {
+    return null; // Return null if no phone number provided
+  }
+  
+  if (!isAuthenticated) {
+    return null; // Return null to hide the entire phone field for backward compatibility
   }
   
   return phoneNumber;
+};
+
+// Enhanced mobile masking function that shows masked version instead of hiding completely
+export const maskMobile = (text, isLoggedIn = null) => {
+  // If authentication status is not provided, check it
+  if (isLoggedIn === null) {
+    isLoggedIn = isUserAuthenticated();
+  }
+  
+  return utilsMaskMobile(text, isLoggedIn);
 };
 
 // Enhanced authentication functions
@@ -600,6 +615,7 @@ export default {
   validateSession,
   isUserAuthenticated,
   hideMobileNumber,
+  maskMobile,
   insertMessage,
   updateMessage,
   deleteMessage,

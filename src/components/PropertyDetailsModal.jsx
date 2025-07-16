@@ -15,7 +15,7 @@ import {
   ChatBubbleLeftEllipsisIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
-import { getPropertyById, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
+import { getPropertyById, hideMobileNumber, maskMobile, isUserAuthenticated } from '../services/apiService';
 
 // Virtual property image generator
 const PropertyDetailsModal = ({ property, isOpen, onClose }) => {
