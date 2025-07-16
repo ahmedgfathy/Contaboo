@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const { extractMessageData, classifyPurpose, extractPrice } = require('./regex-patterns');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -19,7 +20,7 @@ module.exports = async (req, res) => {
 
   if (req.method === 'GET') {
     try {
-      // Get stats from both chat_messages and properties_import tables
+      // Get basic property type stats from both tables
       const chatStats = await pool.query(`
         SELECT 
           CASE 
@@ -54,7 +55,60 @@ module.exports = async (req, res) => {
         GROUP BY property_type
       `);
       
-      // Combine and aggregate stats
+      // Get enhanced analytics using regex patterns
+      const detailedAnalytics = await pool.query(`
+        SELECT 
+          id,
+          message_text,
+          property_type,
+          created_at
+        FROM chat_messages 
+        WHERE message_text IS NOT NULL 
+          AND message_text != ''
+        ORDER BY created_at DESC
+        LIMIT 1000
+      `);
+      
+      // Process messages for enhanced insights
+      let purposeStats = { sale: 0, rent: 0, wanted: 0, unknown: 0 };
+      let areaStats = {};
+      let priceRanges = { low: 0, medium: 0, high: 0, unknown: 0 };
+      let brokerCount = 0;
+      
+      detailedAnalytics.rows.forEach(row => {
+        const messageText = row.message_text;
+        
+        // Classify purpose
+        const purpose = classifyPurpose(messageText);
+        purposeStats[purpose]++;
+        
+        // Extract area information
+        const areaMatch = messageText.match(/\b(New Cairo|6th October|Zayed|Nasr City|Maadi|Heliopolis|Tagamoa|Downtown|القاهرة الجديدة|أكتوبر|الشيخ زايد|مدينة نصر|المعادي|مصر الجديدة|التجمع|وسط البلد)\b/i);
+        if (areaMatch) {
+          const area = areaMatch[0];
+          areaStats[area] = (areaStats[area] || 0) + 1;
+        }
+        
+        // Extract price information
+        const priceInfo = extractPrice(messageText);
+        if (priceInfo) {
+          const value = priceInfo.value;
+          if (value < 1000000) priceRanges.low++;
+          else if (value < 5000000) priceRanges.medium++;
+          else priceRanges.high++;
+        } else {
+          priceRanges.unknown++;
+        }
+        
+        // Check for broker information
+        const brokerMatch = messageText.match(/\b(Mr\.?\s\w+|Eng\.?\s\w+|Dr\.?\s\w+|[A-Z][a-z]+\s[A-Z][a-z]+)\b/i);
+        const mobileMatch = messageText.match(/(\+?2?01[0-2,5]{1}[0-9]{8})/);
+        if (brokerMatch || mobileMatch) {
+          brokerCount++;
+        }
+      });
+      
+      // Combine and aggregate basic stats
       const combinedStats = {};
       
       chatStats.rows.forEach(row => {
@@ -70,58 +124,23 @@ module.exports = async (req, res) => {
         count
       }));
 
-      res.status(200).json({ success: true, stats });
+      res.status(200).json({ 
+        success: true, 
+        stats,
+        analytics: {
+          purpose: purposeStats,
+          areas: areaStats,
+          priceRanges: priceRanges,
+          totalMessagesAnalyzed: detailedAnalytics.rows.length,
+          messagesWithBrokerInfo: brokerCount
+        },
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error('Stats error:', error);
       res.status(500).json({ success: false, message: 'Database error' });
     }
   } else {
     res.status(405).json({ success: false, message: 'Method not allowed' });
-  }
-};
-      }
-
-      const stats = result.rows;
-      
-      // Ensure we always return data
-      if (!stats || stats.length === 0) {
-        return res.status(200).json({
-          success: true,
-          stats: [
-            { property_type: 'Compound Apartments', count: 0 },
-            { property_type: 'Independent Villas', count: 0 },
-            { property_type: 'Land & Local Villas', count: 0 },
-            { property_type: 'Commercial & Administrative', count: 0 },
-            { property_type: 'North Coast', count: 0 },
-            { property_type: 'Ain Sokhna', count: 0 },
-            { property_type: 'Rehab & Madinaty', count: 0 },
-            { property_type: 'Various Areas', count: 0 }
-          ],
-          dataSource: 'fallback',
-          migrationProgress: 'no_data',
-          message: 'No data available, showing empty categories'
-        });
-      }
-      
-      res.status(200).json({
-        success: true,
-        stats: stats,
-        dataSource: dataSource,
-        migrationProgress: migrationProgress,
-        timestamp: new Date().toISOString()
-      });
-      
-    } catch (error) {
-      console.error('❌ Stats API error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to fetch statistics',
-        details: error.message,
-        dataSource: 'error',
-        migrationProgress: 'error'
-      });
-    }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
   }
 };
