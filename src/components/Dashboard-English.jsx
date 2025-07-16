@@ -30,6 +30,7 @@ import CSVImportEnglish from './CSVImport-English';
 import PropertyDetailsModal from './PropertyDetailsModal';
 import EditPropertyModal from './EditPropertyModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ScrollToTopButton from './ScrollToTopButton';
 
 // Virtual property image generator
 const getVirtualPropertyImage = (propertyType, messageId) => {
@@ -1368,6 +1369,14 @@ const DashboardEnglish = ({ onLogout, onLanguageSwitch }) => {
         isOpen={showCSVImport}
         onClose={() => setShowCSVImport(false)}
         onImportComplete={handleCSVImportComplete}
+      />
+      
+      {/* Enhanced Scroll-to-Top Button */}
+      <ScrollToTopButton 
+        language="english"
+        theme="primary"
+        size="medium"
+        position="bottom-right"
       />
     </div>
   );

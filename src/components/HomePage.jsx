@@ -28,6 +28,7 @@ import PropertyHeroSlider from './PropertyHeroSlider';
 import AIFloatingButton from './AIFloatingButton';
 import AIChatAssistant from './AIChatAssistant';
 import SEOHead from './SEOHead';
+import ScrollToTopButton from './ScrollToTopButton';
 import { isAIAvailable } from '../services/aiService';
 import { generateSEOHashtags } from './SEOHead';
 
@@ -1465,6 +1466,7 @@ const HomePage = () => {
                     key={message.id} 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
+
                     transition={{ duration: 0.4, delay: index * 0.1 }}
                     whileHover={{ y: -8, transition: { duration: 0.3 } }}
                     onClick={() => navigate(`/property/${message.id}`)}
@@ -1814,6 +1816,14 @@ const HomePage = () => {
 
       {/* AI Floating Assistant Button */}
       <AIFloatingButton language={language} />
+      
+      {/* Enhanced Scroll-to-Top Button */}
+      <ScrollToTopButton 
+        language={language}
+        theme="purple"
+        size="medium"
+        position="bottom-right"
+      />
       </div>
     </>
   );

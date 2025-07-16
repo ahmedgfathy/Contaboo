@@ -259,6 +259,259 @@ export const generateResponsiveCSS = (options = {}) => {
   `;
 };
 
+/**
+ * Enhanced scroll-to-top button analysis and fixes
+ * @param {string} htmlContent - HTML content to analyze and fix
+ * @returns {Object} Object with scroll button analysis and fixes
+ */
+export const enhanceScrollToTopFunctionality = (htmlContent) => {
+  const enhancement = {
+    originalContent: htmlContent,
+    enhancedContent: htmlContent,
+    analysis: {
+      enhancedFloatingScrollButtons: [],
+      inactiveScrollButtons: [],
+      scrollButtonsWithoutJS: [],
+      positionStylingIssues: [],
+      missingScrollFunctionality: []
+    },
+    appliedFixes: [],
+    recommendations: []
+  };
+
+  // Analyze existing scroll buttons
+  enhancement.analysis.enhancedFloatingScrollButtons = detectEnhancedFloatingScrollButtons(htmlContent);
+  enhancement.analysis.inactiveScrollButtons = detectInactiveScrollButtons(htmlContent);
+  enhancement.analysis.scrollButtonsWithoutJS = detectScrollButtonsWithoutJS(htmlContent);
+  enhancement.analysis.positionStylingIssues = detectPositionStylingIssues(htmlContent);
+  enhancement.analysis.missingScrollFunctionality = detectMissingScrollFunctionality(htmlContent);
+
+  // Apply fixes
+  if (enhancement.analysis.missingScrollFunctionality.length > 0) {
+    enhancement.enhancedContent = addScrollToTopButton(enhancement.enhancedContent);
+    enhancement.appliedFixes.push('Added missing scroll-to-top button');
+  }
+
+  if (enhancement.analysis.inactiveScrollButtons.length > 0) {
+    enhancement.enhancedContent = enhanceInactiveScrollButtons(enhancement.enhancedContent);
+    enhancement.appliedFixes.push('Enhanced inactive scroll buttons with content and styling');
+  }
+
+  if (enhancement.analysis.scrollButtonsWithoutJS.length > 0) {
+    enhancement.enhancedContent = addScrollButtonJavaScript(enhancement.enhancedContent);
+    enhancement.appliedFixes.push('Added JavaScript functionality to scroll buttons');
+  }
+
+  // Generate recommendations
+  if (enhancement.analysis.positionStylingIssues.length > 0) {
+    enhancement.recommendations.push('Consider using position: fixed with proper z-index for scroll buttons');
+  }
+
+  if (enhancement.analysis.enhancedFloatingScrollButtons.length > 0) {
+    enhancement.recommendations.push('Ensure scroll buttons have consistent styling and smooth scroll behavior');
+  }
+
+  return enhancement;
+};
+
+/**
+ * Add a scroll-to-top button to HTML content
+ * @param {string} htmlContent - HTML content to enhance
+ * @returns {string} Enhanced HTML with scroll-to-top button
+ */
+const addScrollToTopButton = (htmlContent) => {
+  const scrollToTopHTML = `
+    <!-- Enhanced Scroll-to-Top Button -->
+    <button id="scrollToTopBtn" class="scroll-to-top-btn" style="
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      z-index: 40;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      display: none;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+    " onclick="scrollToTop()">
+      ↑
+    </button>
+    
+    <script>
+      // Show/hide scroll-to-top button based on scroll position
+      window.addEventListener('scroll', function() {
+        const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+        if (window.pageYOffset > 300) {
+          scrollToTopBtn.style.display = 'block';
+        } else {
+          scrollToTopBtn.style.display = 'none';
+        }
+      });
+      
+      // Smooth scroll to top function
+      function scrollToTop() {
+        window.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+    </script>
+  `;
+
+  // Add before closing body tag
+  if (htmlContent.includes('</body>')) {
+    return htmlContent.replace('</body>', scrollToTopHTML + '</body>');
+  } else {
+    return htmlContent + scrollToTopHTML;
+  }
+};
+
+/**
+ * Enhance inactive scroll buttons with content and styling
+ * @param {string} htmlContent - HTML content to enhance
+ * @returns {string} Enhanced HTML with improved scroll buttons
+ */
+const enhanceInactiveScrollButtons = (htmlContent) => {
+  // Add arrow icon and styling to empty scroll buttons
+  return htmlContent.replace(
+    /<(button|div|a)([^>]*class=["'][^"']*(scroll.*?top|back.*?top)[^"']*["'][^>]*)>\s*<\/\1>/gi,
+    '<$1$2 style="position: fixed; bottom: 1rem; right: 1rem; z-index: 40;">↑</$1>'
+  );
+};
+
+/**
+ * Add JavaScript functionality to scroll buttons
+ * @param {string} htmlContent - HTML content to enhance
+ * @returns {string} Enhanced HTML with JavaScript functionality
+ */
+const addScrollButtonJavaScript = (htmlContent) => {
+  const scrollJS = `
+    <script>
+      // Enhanced scroll-to-top functionality
+      document.addEventListener('DOMContentLoaded', function() {
+        const scrollButtons = document.querySelectorAll('[class*="scroll"], [class*="top"], [class*="back"]');
+        
+        scrollButtons.forEach(button => {
+          if (button.textContent.includes('↑') || button.className.includes('scroll') || button.className.includes('top')) {
+            button.addEventListener('click', function(e) {
+              e.preventDefault();
+              window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+              });
+            });
+            
+            // Style the button if not already styled
+            if (!button.style.position) {
+              button.style.position = 'fixed';
+              button.style.bottom = '1rem';
+              button.style.right = '1rem';
+              button.style.zIndex = '40';
+            }
+          }
+        });
+      });
+    </script>
+  `;
+
+  // Add before closing body tag
+  if (htmlContent.includes('</body>')) {
+    return htmlContent.replace('</body>', scrollJS + '</body>');
+  } else {
+    return htmlContent + scrollJS;
+  }
+};
+
+/**
+ * Generate comprehensive scroll-to-top CSS
+ * @param {Object} options - CSS generation options
+ * @returns {string} Generated CSS for scroll-to-top functionality
+ */
+export const generateScrollToTopCSS = (options = {}) => {
+  const {
+    buttonSize = '50px',
+    bottomPosition = '1rem',
+    rightPosition = '1rem',
+    backgroundColor = '#3b82f6',
+    textColor = 'white',
+    zIndex = '40'
+  } = options;
+
+  return `
+    /* Enhanced Scroll-to-Top Button Styles */
+    .scroll-to-top-btn, 
+    .scroll-top,
+    .back-to-top,
+    .to-top {
+      position: fixed !important;
+      bottom: ${bottomPosition} !important;
+      right: ${rightPosition} !important;
+      z-index: ${zIndex} !important;
+      width: ${buttonSize};
+      height: ${buttonSize};
+      background: ${backgroundColor};
+      color: ${textColor};
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .scroll-to-top-btn:hover,
+    .scroll-top:hover,
+    .back-to-top:hover,
+    .to-top:hover {
+      background: ${backgroundColor}dd;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    
+    /* Hide by default, show on scroll */
+    .scroll-to-top-btn.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .scroll-to-top-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .scroll-to-top-btn, 
+      .scroll-top,
+      .back-to-top,
+      .to-top {
+        width: 45px;
+        height: 45px;
+        bottom: 1rem;
+        right: 1rem;
+        font-size: 16px;
+      }
+    }
+    
+    /* Arabic RTL support */
+    [dir="rtl"] .scroll-to-top-btn,
+    [dir="rtl"] .scroll-top,
+    [dir="rtl"] .back-to-top,
+    [dir="rtl"] .to-top {
+      right: auto;
+      left: ${rightPosition} !important;
+    }
+  `;
+};
+
 export default {
   fixUILayoutIssues,
   handleMobileNumber,

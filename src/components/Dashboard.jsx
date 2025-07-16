@@ -22,8 +22,12 @@ import {
   ChartBarIcon,
   LanguageIcon,
   ShieldCheckIcon,
-  DocumentArrowUpIcon
+  DocumentArrowUpIcon,
+  ArrowLeftIcon,
+  ShareIcon,
+  HeartIcon
 } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { getAllMessages, searchMessages, getPropertyTypeStats, removeDuplicateMessages, searchAll, searchProperties, updateMessage, deleteMessage } from '../services/apiService';
 import ChatImport from './ChatImport';
 import CSVImport from './CSVImport';
@@ -33,6 +37,7 @@ import CSVPropertyDetailsModal from './CSVPropertyDetailsModal';
 import EditPropertyModal from './EditPropertyModal';
 import PropertyDetailsModal from './PropertyDetailsModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ScrollToTopButton from './ScrollToTopButton';
 // import AIAnalytics from './AIAnalytics'; // Temporarily disabled
 
 // Virtual property image generator
@@ -104,6 +109,9 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
   const [showCSVImport, setShowCSVImport] = useState(false);
   const [searchResultType, setSearchResultType] = useState('chat'); // 'chat', 'properties', 'combined'
   const [combinedResults, setCombinedResults] = useState(null);
+  const [favorites, setFavorites] = useState(new Set()); // Track favorite properties
+  const [showStickyHeader, setShowStickyHeader] = useState(false); // Show sticky header when scrolling
+  const [currentProperty, setCurrentProperty] = useState(null); // Currently viewed property
 
   const propertyFilters = [
     { id: 'all', label: 'جميع العقارات', icon: BuildingOffice2Icon, color: 'from-purple-500 to-pink-500' },
@@ -159,6 +167,17 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
     const total = stats.reduce((sum, stat) => sum + stat.count, 0);
     console.log('Dashboard: Total from current stats state:', total);
   }, [stats]);
+
+  // Scroll event listener for sticky header
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      setShowStickyHeader(scrollY > 200); // Show sticky header after scrolling 200px
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const loadInitialData = async () => {
     setLoading(true);
@@ -230,8 +249,7 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
     // Show success message
     setAdminResult({
       success: true,
-      message: `تم استيراد ${result.imported || result.total || 0} سجل بنجاح من ملف CSV`,
-      imported: result.imported || result.total || 0
+      message: `تم استيراد ${result.imported || result.total || 0} سجل بنجاح`
     });
   };
 
@@ -289,22 +307,26 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
 
   const showUnitDetails = (unit) => {
     setSelectedUnit(unit);
+    setCurrentProperty(unit); // Set current property for sticky header
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setSelectedUnit(null);
+    setCurrentProperty(null); // Clear current property
   };
 
   const showPropertyDetails = (property) => {
     setSelectedProperty(property);
+    setCurrentProperty(property); // Set current property for sticky header
     setShowPropertyModal(true);
   };
 
   const closePropertyModal = () => {
     setShowPropertyModal(false);
     setSelectedProperty(null);
+    setCurrentProperty(null); // Clear current property
   };
 
   // Edit property functions
@@ -476,8 +498,135 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
       <ChevronDownIcon className="h-4 w-4 text-blue-400" />;
   };
 
+  // Helper functions for sticky header functionality
+  const toggleFavorite = (propertyId) => {
+    setFavorites(prev => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(propertyId)) {
+        newFavorites.delete(propertyId);
+      } else {
+        newFavorites.add(propertyId);
+      }
+      return newFavorites;
+    });
+  };
+
+  const shareProperty = async (property) => {
+    const shareData = {
+      title: `عقار ${getPropertyTypeLabel(property.property_type)}`,
+      text: `${property.message.substring(0, 100)}...`,
+      url: window.location.href
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback - copy to clipboard
+        await navigator.clipboard.writeText(
+          `${shareData.title}\n${shareData.text}\n${shareData.url}`
+        );
+        alert('تم نسخ بيانات العقار إلى الحافظة');
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden font-cairo lang-arabic" dir="rtl" lang="ar">
+      
+      {/* Sticky Header for Property Navigation */}
+      <AnimatePresence>
+        {showStickyHeader && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-white/10 shadow-2xl"
+          >
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                
+                {/* Back Navigation */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => window.history.back()}
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 text-purple-300 rounded-xl hover:bg-purple-600/30 transition-all duration-300"
+                >
+                  <ArrowLeftIcon className="h-5 w-5" />
+                  <span className="text-sm font-medium">رجوع</span>
+                </motion.button>
+
+                {/* Property Info (if currentProperty is set) */}
+                {currentProperty && (
+                  <div className="flex items-center gap-3">
+                    <div className="text-center">
+                      <h3 className="text-white font-bold text-sm">
+                        {getPropertyTypeLabel(currentProperty.property_type)}
+                      </h3>
+                      <p className="text-gray-400 text-xs">
+                        {currentProperty.sender || 'غير محدد'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                  
+                  {/* Share Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => currentProperty && shareProperty(currentProperty)}
+                    className="p-2 bg-blue-600/20 text-blue-300 rounded-xl hover:bg-blue-600/30 transition-all duration-300"
+                    title="مشاركة العقار"
+                  >
+                    <ShareIcon className="h-5 w-5" />
+                  </motion.button>
+
+                  {/* Favorite Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => currentProperty && toggleFavorite(currentProperty.id)}
+                    className="p-2 bg-red-600/20 text-red-300 rounded-xl hover:bg-red-600/30 transition-all duration-300"
+                    title={favorites.has(currentProperty?.id) ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+                  >
+                    {favorites.has(currentProperty?.id) ? (
+                      <HeartSolidIcon className="h-5 w-5 text-red-400" />
+                    ) : (
+                      <HeartIcon className="h-5 w-5" />
+                    )}
+                  </motion.button>
+
+                  {/* Scroll to Top Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={scrollToTop}
+                    className="p-2 bg-green-600/20 text-green-300 rounded-xl hover:bg-green-600/30 transition-all duration-300"
+                    title="العودة لأعلى الصفحة"
+                  >
+                    <ChevronUpIcon className="h-5 w-5" />
+                  </motion.button>
+
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Animated Background */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-900/40 to-slate-900"></div>
@@ -577,18 +726,29 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                   <motion.button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`relative overflow-hidden px-8 py-5 text-sm font-bold rounded-2xl transition-all duration-500 flex flex-col items-center space-y-2 min-w-[160px] ${
+                    whileHover={{
+                      scale: 1.05,
+                      y: -2
+                    }}
+                    whileTap={{
+                      scale: 0.95
+                    }}
+                    className={[
+                      'relative', 'overflow-hidden', 'px-8', 'py-5', 'text-sm', 'font-bold', 
+                      'rounded-2xl', 'transition-all', 'flex', 'flex-col', 'items-center', 'space-y-2',
                       isActive
                         ? 'text-white shadow-2xl transform scale-105'
                         : 'text-gray-300 hover:text-white glass-light'
-                    }`}
+                    ].join(' ')}
+                    style={{ 
+                      minWidth: '160px',
+                      transitionDuration: '500ms'
+                    }}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="activeTab"
-                        className={`absolute inset-0 bg-gradient-to-r ${tab.gradient} rounded-2xl`}
+                        className={['absolute', 'inset-0', 'bg-gradient-to-r', tab.gradient, 'rounded-2xl'].join(' ')}
                         initial={false}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                       />
@@ -675,11 +835,12 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSearch('combined')}
-                className={`px-2 py-1 rounded-md transition-all duration-200 ${
+                className={[
+                  'px-2', 'py-1', 'rounded-md', 'transition-all', 'duration-200',
                   searchResultType === 'combined' 
                     ? 'bg-purple-500 text-white' 
                     : 'bg-slate-600/50 text-slate-300 hover:bg-slate-600'
-                }`}
+                ].join(' ')}
               >
                 بحث شامل
               </motion.button>
@@ -687,11 +848,12 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSearch('chat')}
-                className={`px-2 py-1 rounded-md transition-all duration-200 ${
+                className={[
+                  'px-2', 'py-1', 'rounded-md', 'transition-all', 'duration-200',
                   searchResultType === 'chat' 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-slate-600/50 text-slate-300 hover:bg-slate-600'
-                }`}
+                ].join(' ')}
               >
                 محادثات
               </motion.button>
@@ -699,11 +861,12 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => handleSearch('properties')}
-                className={`px-2 py-1 rounded-md transition-all duration-200 ${
+                className={[
+                  'px-2', 'py-1', 'rounded-md', 'transition-all', 'duration-200',
                   searchResultType === 'properties' 
                     ? 'bg-green-500 text-white' 
                     : 'bg-slate-600/50 text-slate-300 hover:bg-slate-600'
-                }`}
+                ].join(' ')}
               >
                 عقارات CSV
               </motion.button>
@@ -718,11 +881,13 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
             onClick={() => handleStatClick('all')}
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
-            className={`bg-gradient-to-br rounded-2xl p-5 text-white transition-all duration-300 shadow-xl hover:shadow-2xl border ${
+            className={[
+              'bg-gradient-to-br', 'rounded-2xl', 'p-5', 'text-white', 'transition-all', 'duration-300', 
+              'shadow-xl', 'hover:shadow-2xl', 'border',
               selectedFilter === 'all' 
                 ? 'from-purple-500 to-purple-700 ring-2 ring-purple-300 shadow-purple-500/25 border-purple-400/50' 
                 : 'from-gray-600 to-gray-800 hover:from-purple-500 hover:to-purple-700 border-gray-600/50'
-            }`}
+            ].join(' ')}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
@@ -772,33 +937,38 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                   onClick={() => handleStatClick(filter.id)}
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`relative group bg-gradient-to-br ${filter.color} rounded-xl p-4 text-white transition-all duration-300 shadow-lg hover:shadow-xl border ${
+                  className={[
+                    'relative', 'group', 'bg-gradient-to-br', filter.color, 'rounded-xl', 'p-4', 
+                    'text-white', 'transition-all', 'duration-300', 'shadow-lg', 'hover:shadow-xl', 'border',
                     isActive 
                       ? 'ring-2 ring-white/50 shadow-2xl scale-105 border-white/30' 
                       : 'border-white/10 hover:border-white/20'
-                  }`}
+                  ].join(' ')}
                 >
                   <div className="flex flex-col items-center space-y-2">
-                    <div className={`p-2 rounded-lg transition-all duration-300 ${
+                    <div className={[
+                      'p-2', 'rounded-lg', 'transition-all', 'duration-300',
                       isActive 
                         ? 'bg-white/30 scale-110' 
                         : 'bg-white/20 group-hover:bg-white/30'
-                    }`}>
+                    ].join(' ')}>
                       <IconComponent className="h-5 w-5" />
                     </div>
                     <span className="text-xs font-medium text-center leading-tight">{filter.label}</span>
-                    <div className={`text-lg font-bold transition-all duration-300 ${
+                    <div className={[
+                      'text-lg', 'font-bold', 'transition-all', 'duration-300',
                       isActive 
                         ? 'text-white scale-110' 
                         : 'text-white/90 group-hover:text-white'
-                    }`}>
+                    ].join(' ')}>
                       {count.toLocaleString()}
                     </div>
-                    <div className={`w-full h-0.5 rounded-full transition-all duration-300 ${
+                    <div className={[
+                      'w-full', 'h-0.5', 'rounded-full', 'transition-all', 'duration-300',
                       isActive 
                         ? 'bg-white/60' 
                         : 'bg-white/20 group-hover:bg-white/40'
-                    }`}></div>
+                    ].join(' ')}></div>
                   </div>
                   
                   {isActive && (
@@ -827,7 +997,7 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
               <div>
                 <h3 className="text-3xl font-bold text-white mb-3 flex items-center gap-3">
                   <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                  {selectedFilter === 'all' ? 'جميع العقارات' : `عقارات ${getPropertyTypeLabel(selectedFilter)}`}
+                  {selectedFilter === 'all' ? 'جميع العقارات' : 'عقارات ' + getPropertyTypeLabel(selectedFilter)}
                 </h3>
                 <p className="text-gray-400 flex items-center gap-2">
                   <BuildingOffice2Icon className="h-5 w-5" />
@@ -953,7 +1123,10 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                           <td className="py-4 px-6 w-28">
                             <motion.span 
                               whileHover={{ scale: 1.05 }}
-                              className={`px-3 py-1 rounded-full text-xs font-medium border ${getPropertyTypeColorClass(message.property_type)}`}
+                              className={[
+                                'px-3', 'py-1', 'rounded-full', 'text-xs', 'font-medium', 'border', 
+                                getPropertyTypeColorClass(message.property_type)
+                              ].join(' ')}
                             >
                               {getPropertyTypeLabel(message.property_type)}
                             </motion.span>
@@ -993,6 +1166,40 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                               >
                                 <EyeIcon className="h-4 w-4 ml-1" />
                                 عرض
+                              </motion.button>
+
+                              {/* Share Button */}
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => shareProperty(message)}
+                                className="flex items-center px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 text-sm shadow-md hover:shadow-lg font-medium"
+                                title="مشاركة العقار"
+                              >
+                                <ShareIcon className="h-4 w-4 ml-1" />
+                                مشاركة
+                              </motion.button>
+
+                              {/* Favorite Button */}
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => toggleFavorite(message.id)}
+                                className={[
+                                  'flex', 'items-center', 'px-3', 'py-2', 'rounded-lg', 'transition-all', 'duration-300', 
+                                  'text-sm', 'shadow-md', 'hover:shadow-lg', 'font-medium',
+                                  favorites.has(message.id)
+                                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
+                                    : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700'
+                                ].join(' ')}
+                                title={favorites.has(message.id) ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+                              >
+                                {favorites.has(message.id) ? (
+                                  <HeartSolidIcon className="h-4 w-4 ml-1 text-red-200" />
+                                ) : (
+                                  <HeartIcon className="h-4 w-4 ml-1" />
+                                )}
+                                {favorites.has(message.id) ? 'مفضل' : 'مفضلة'}
                               </motion.button>
                               
                               <motion.button
@@ -1056,11 +1263,12 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => setCurrentPage(pageNumber)}
-                              className={`px-4 py-2 rounded-lg transition-all duration-300 font-semibold ${
+                              className={[
+                                'px-4', 'py-2', 'rounded-lg', 'transition-all', 'duration-300', 'font-semibold',
                                 currentPage === pageNumber
                                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg transform scale-110'
                                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white'
-                              }`}
+                              ].join(' ')}
                             >
                               {pageNumber}
                             </motion.button>
@@ -1141,7 +1349,10 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                   <div className="flex items-start justify-between mb-4">
                     <motion.span 
                       whileHover={{ scale: 1.05 }}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border ${getPropertyTypeColorClass(message.property_type)}`}
+                      className={[
+                        'px-3', 'py-1', 'rounded-full', 'text-xs', 'font-medium', 'border',
+                        getPropertyTypeColorClass(message.property_type)
+                      ].join(' ')}
                     >
                       {getPropertyTypeLabel(message.property_type)}
                     </motion.span>
@@ -1181,6 +1392,38 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                     >
                       <EyeIcon className="h-4 w-4" />
                       عرض
+                    </motion.button>
+
+                    {/* Share Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => shareProperty(message)}
+                      className="flex items-center justify-center px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 text-sm font-medium"
+                      title="مشاركة"
+                    >
+                      <ShareIcon className="h-4 w-4" />
+                    </motion.button>
+
+                    {/* Favorite Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => toggleFavorite(message.id)}
+                      className={[
+                        'flex', 'items-center', 'justify-center', 'px-3', 'py-2', 'rounded-lg', 
+                        'transition-all', 'duration-300', 'text-sm', 'font-medium',
+                        favorites.has(message.id)
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700'
+                          : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700'
+                      ].join(' ')}
+                      title={favorites.has(message.id) ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+                    >
+                      {favorites.has(message.id) ? (
+                        <HeartSolidIcon className="h-4 w-4 text-red-200" />
+                      ) : (
+                        <HeartIcon className="h-4 w-4" />
+                      )}
                     </motion.button>
                     
                     <motion.button
@@ -1315,8 +1558,6 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                   disabled={adminLoading}
                   whileHover={{ scale: adminLoading ? 1 : 1.02 }}
                   whileTap={{ scale: adminLoading ? 1 : 0.98 }}
-                  whileHover={{ scale: adminLoading ? 1 : 1.02 }}
-                  whileTap={{ scale: adminLoading ? 1 : 0.98 }}
                   className="w-full px-6 py-4 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold rounded-xl shadow-lg hover:from-orange-700 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-3"
                 >
                   {adminLoading ? (
@@ -1371,11 +1612,12 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`mt-8 p-6 rounded-xl border ${
+                  className={[
+                    'mt-8', 'p-6', 'rounded-xl', 'border',
                     adminResult.success 
                       ? 'bg-green-900/20 border-green-500/30' 
                       : 'bg-red-900/20 border-red-500/30'
-                  }`}
+                  ].join(' ')}
                 >
                   <div className="flex items-start gap-3">
                     {adminResult.success ? (
@@ -1392,7 +1634,10 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
                       </div>
                     )}
                     <div>
-                      <h4 className={`font-bold mb-2 ${adminResult.success ? 'text-green-400' : 'text-red-400'}`}>
+                      <h4 className={[
+                        'font-bold', 'mb-2',
+                        adminResult.success ? 'text-green-400' : 'text-red-400'
+                      ].join(' ')}>
                         {adminResult.success ? 'تمت العملية بنجاح' : 'فشلت العملية'}
                       </h4>
                       <p className="text-gray-300 mb-3">{adminResult.message}</p>
@@ -1434,6 +1679,7 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
 
       {/* CSV Import Modal */}
       <CSVImport 
+ 
         isOpen={showCSVImport}
         onClose={() => setShowCSVImport(false)}
         onImportComplete={handleCSVImportComplete}
@@ -1464,6 +1710,14 @@ const Dashboard = ({ onLogout, onLanguageSwitch }) => {
 
       {/* AI Analytics Component - Temporarily disabled until implementation */}
       {/* <AIAnalytics /> */}
+      
+      {/* Enhanced Scroll-to-Top Button */}
+      <ScrollToTopButton 
+        language="arabic"
+        theme="primary"
+        size="medium"
+        position="bottom-right"
+      />
     </div>
   );
 };
