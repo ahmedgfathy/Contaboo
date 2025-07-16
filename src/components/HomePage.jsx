@@ -1413,6 +1413,35 @@ const HomePage = () => {
           </div>
         </motion.div>
 
+        {/* AI Dashboard Section */}
+        {isAIAvailable() && (
+          <motion.div 
+            className="mb-12"
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+          >
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full">
+                  <SparklesIcon className="w-6 h-6 text-white" />
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-white">
+                  {language === 'arabic' ? 'التحليلات الذكية' : 'AI Insights'}
+                </h2>
+                <div className="flex-1 h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
+              </div>
+              <p className="text-gray-400 text-lg">
+                {language === 'arabic' 
+                  ? 'اكتشف رؤى ذكية حول السوق العقاري بقوة الذكاء الاصطناعي'
+                  : 'Discover intelligent insights about the real estate market powered by AI'
+                }
+              </p>
+            </div>
+            <AIDashboard language={language} />
+          </motion.div>
+        )}
+
         {/* Properties Grid - Centered and Aligned */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
