@@ -7,16 +7,16 @@ async function testAPI() {
   
   const tests = [
     {
-      name: 'Local Backend /search-all',
-      url: 'http://localhost:3001/api/search-all?limit=5'
+      name: 'Vercel Dev Server /search-all',
+      url: 'http://localhost:3000/api/search-all?limit=5'
     },
     {
-      name: 'Local Frontend Proxy /search-all', 
-      url: 'http://localhost:5173/api/search-all?limit=5'
+      name: 'Vercel Dev Server /health',
+      url: 'http://localhost:3000/api/health'
     },
     {
-      name: 'Local Backend /health',
-      url: 'http://localhost:3001/api/health'
+      name: 'Production Vercel /health', 
+      url: 'https://contaboo.vercel.app/api/health'
     }
   ];
   
