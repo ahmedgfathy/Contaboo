@@ -23,12 +23,11 @@ import {
   ExclamationTriangleIcon,
   HomeIcon
 } from '@heroicons/react/24/outline';
-import { getAllProperties, searchProperties, getPropertyTypeStats, hideMobileNumber, maskMobile, isUserAuthenticated } from '../services/apiService';
+import { getAllProperties, searchProperties, getPropertyTypeStats, hideMobileNumber, isUserAuthenticated } from '../services/apiService';
 import PropertyHeroSlider from './PropertyHeroSlider';
 import AIFloatingButton from './AIFloatingButton';
 import AIChatAssistant from './AIChatAssistant';
 import SEOHead from './SEOHead';
-import ScrollToTopButton from './ScrollToTopButton';
 import { isAIAvailable } from '../services/aiService';
 import { generateSEOHashtags } from './SEOHead';
 
@@ -687,7 +686,7 @@ const HomePage = () => {
 
       {/* Animated Phone CRM Feature */}
       <motion.div
-        className="fixed bottom-8 right-8 z-50 pointer-events-auto"
+        className="fixed bottom-8 right-20 z-50 pointer-events-auto"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ 
@@ -1466,7 +1465,6 @@ const HomePage = () => {
                     key={message.id} 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-
                     transition={{ duration: 0.4, delay: index * 0.1 }}
                     whileHover={{ y: -8, transition: { duration: 0.3 } }}
                     onClick={() => navigate(`/property/${message.id}`)}
@@ -1516,10 +1514,10 @@ const HomePage = () => {
                       {/* Property Title */}
                       <div>
                         <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 group-hover:text-blue-300 transition-colors duration-300">
-                          {maskMobile(message.property_name || message.message, isAuthenticated)}
+                          {message.property_name || message.message}
                         </h3>
                         <p className="text-sm text-gray-400 line-clamp-2">
-                          {maskMobile(message.full_description || message.message, isAuthenticated)}
+                          {message.full_description || message.message}
                         </p>
                       </div>
 
@@ -1589,16 +1587,13 @@ const HomePage = () => {
                         )}
 
                         {/* Agent Contact */}
-                        {message.agent_phone && message.agent_phone !== 'غير متوفر' && (
+                        {hideMobileNumber(message.agent_phone, isAuthenticated) && message.agent_phone !== 'غير متوفر' && (
                           <div className="flex items-center space-x-2 rtl:space-x-reverse">
                             <UserIcon className="h-4 w-4 text-green-400 flex-shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="text-xs text-gray-400">الوكيل</p>
                               <p className="text-sm font-medium text-white truncate">
                                 {message.sender}
-                              </p>
-                              <p className="text-xs font-mono text-green-400">
-                                {maskMobile(message.agent_phone, isAuthenticated)}
                               </p>
                             </div>
                           </div>
@@ -1630,17 +1625,13 @@ const HomePage = () => {
                           عرض التفاصيل
                         </motion.button>
 
-                        {message.agent_phone && message.agent_phone !== 'غير متوفر' && (
+                        {hideMobileNumber(message.agent_phone, isAuthenticated) && message.agent_phone !== 'غير متوفر' && (
                           <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (isAuthenticated) {
-                                window.open(`tel:${message.agent_phone}`, '_self');
-                              } else {
-                                alert('يرجى تسجيل الدخول للاتصال');
-                              }
+                              window.open(`tel:${message.agent_phone}`, '_self');
                             }}
                             className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl"
                           >
@@ -1816,14 +1807,6 @@ const HomePage = () => {
 
       {/* AI Floating Assistant Button */}
       <AIFloatingButton language={language} />
-      
-      {/* Enhanced Scroll-to-Top Button */}
-      <ScrollToTopButton 
-        language={language}
-        theme="purple"
-        size="medium"
-        position="bottom-right"
-      />
       </div>
     </>
   );
