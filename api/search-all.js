@@ -44,16 +44,15 @@ module.exports = async (req, res) => {
     if (search && search.trim()) {
       const searchTerm = `%${search.trim()}%`;
       conditions.push(`(
-        LOWER(COALESCE(cm.message_text, '')) LIKE LOWER($${paramIndex}) OR
+        LOWER(COALESCE(cm.message, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(cm.property_type, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(cm.location, '')) LIKE LOWER($${paramIndex}) OR
-        LOWER(COALESCE(cm.area, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(cm.price, '')) LIKE LOWER($${paramIndex}) OR
-        LOWER(COALESCE(cm.broker_name, '')) LIKE LOWER($${paramIndex}) OR
+        LOWER(COALESCE(cm.sender, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(pi.property_type, '')) LIKE LOWER($${paramIndex}) OR
-        LOWER(COALESCE(pi.location, '')) LIKE LOWER($${paramIndex}) OR
+        LOWER(COALESCE(pi.regions, '')) LIKE LOWER($${paramIndex}) OR
         LOWER(COALESCE(pi.description, '')) LIKE LOWER($${paramIndex}) OR
-        LOWER(COALESCE(pi.broker_name, '')) LIKE LOWER($${paramIndex})
+        LOWER(COALESCE(pi.name, '')) LIKE LOWER($${paramIndex})
       )`);
       params.push(searchTerm);
       paramIndex++;
@@ -80,15 +79,15 @@ module.exports = async (req, res) => {
           'chat' as source,
           cm.property_type,
           cm.price,
-          cm.area,
+          cm.location as area,
           cm.location,
-          cm.message_text as description,
-          cm.broker_name,
-          cm.phone_number,
+          cm.message as description,
+          cm.sender as broker_name,
+          cm.agent_phone as phone_number,
           cm.timestamp as created_at,
-          cm.message_text,
-          cm.chat_date,
-          cm.sender_name,
+          cm.message as message_text,
+          cm.timestamp as chat_date,
+          cm.sender as sender_name,
           NULL as imported_at,
           NULL as reference_id,
           NULL as status,
@@ -106,22 +105,22 @@ module.exports = async (req, res) => {
           pi.id::text as id,
           'import' as source,
           pi.property_type,
-          pi.price,
-          pi.area,
-          pi.location,
+          pi.unit_price as price,
+          pi.regions as area,
+          pi.regions as location,
           pi.description,
-          pi.broker_name,
-          pi.phone_number,
+          pi.name as broker_name,
+          pi.mobile_no as phone_number,
           pi.imported_at as created_at,
           pi.description as message_text,
           NULL as chat_date,
-          pi.broker_name as sender_name,
+          pi.name as sender_name,
           pi.imported_at,
-          pi.reference_id,
-          pi.status,
-          pi.contact_email,
-          pi.notes
-        FROM properties_import pi
+          pi.property_number as reference_id,
+          pi.finished as status,
+          pi.tel as contact_email,
+          pi.zain_house_sales_notes as notes
+        FROM properties pi
         WHERE pi.property_type IS NOT NULL 
           AND pi.property_type != ''
       )

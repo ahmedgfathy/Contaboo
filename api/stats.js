@@ -1,5 +1,4 @@
 const { Pool } = require('pg');
-const { extractMessageData, classifyPurpose, extractPrice } = require('./regex-patterns');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -48,10 +47,8 @@ module.exports = async (req, res) => {
             ELSE 'other'
           END as property_type,
           COUNT(*) as count
-        FROM properties_import 
+        FROM properties 
         WHERE property_type IS NOT NULL
-          AND property_name IS NOT NULL 
-          AND property_name != ''
         GROUP BY property_type
       `);
       
@@ -59,12 +56,12 @@ module.exports = async (req, res) => {
       const detailedAnalytics = await pool.query(`
         SELECT 
           id,
-          message_text,
+          message,
           property_type,
           created_at
         FROM chat_messages 
-        WHERE message_text IS NOT NULL 
-          AND message_text != ''
+        WHERE message IS NOT NULL 
+          AND message != ''
         ORDER BY created_at DESC
         LIMIT 1000
       `);
@@ -76,10 +73,10 @@ module.exports = async (req, res) => {
       let brokerCount = 0;
       
       detailedAnalytics.rows.forEach(row => {
-        const messageText = row.message_text;
+        const messageText = row.message || '';
         
-        // Classify purpose
-        const purpose = classifyPurpose(messageText);
+        // Simple purpose classification
+        const purpose = messageText.toLowerCase().includes('rent') || messageText.includes('إيجار') ? 'rent' : 'sale';
         purposeStats[purpose]++;
         
         // Extract area information
@@ -89,10 +86,10 @@ module.exports = async (req, res) => {
           areaStats[area] = (areaStats[area] || 0) + 1;
         }
         
-        // Extract price information
-        const priceInfo = extractPrice(messageText);
-        if (priceInfo) {
-          const value = priceInfo.value;
+        // Simple price classification
+        const priceMatch = messageText.match(/(\d+)/);
+        if (priceMatch) {
+          const value = parseInt(priceMatch[1]);
           if (value < 1000000) priceRanges.low++;
           else if (value < 5000000) priceRanges.medium++;
           else priceRanges.high++;

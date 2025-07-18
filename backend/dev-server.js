@@ -5,8 +5,9 @@ const path = require('path');
 // Import API handlers
 const statsHandler = require('../api/stats');
 const messagesHandler = require('../api/messages');
-const dropdownsHandler = require('../api/dropdowns');
 const healthHandler = require('../api/health');
+const searchAllHandler = require('../api/search-all');
+const searchHandler = require('../api/search');
 
 const app = express();
 const PORT = 3001;
@@ -41,8 +42,9 @@ const wrapHandler = (handler) => {
 // API Routes
 app.use('/api/stats', wrapHandler(statsHandler));
 app.use('/api/messages', wrapHandler(messagesHandler));
-app.use('/api/dropdowns', wrapHandler(dropdownsHandler));
 app.use('/api/health', wrapHandler(healthHandler));
+app.use('/api/search-all', wrapHandler(searchAllHandler));
+app.use('/api/search', wrapHandler(searchHandler));
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -52,8 +54,9 @@ app.get('/', (req, res) => {
     endpoints: [
       'GET /api/stats',
       'GET /api/messages',
-      'GET /api/dropdowns',
-      'GET /api/health'
+      'GET /api/health',
+      'GET /api/search-all',
+      'GET /api/search'
     ]
   });
 });
