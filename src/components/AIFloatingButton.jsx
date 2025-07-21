@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import AIChatAssistant from './AIChatAssistant';
-import { isAIAvailable } from '../services/aiService';
+import { isAIAvailable } from '../services/mcpAiService';
 
 const AIFloatingButton = ({ language = 'arabic' }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);

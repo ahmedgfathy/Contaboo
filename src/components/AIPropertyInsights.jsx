@@ -9,7 +9,7 @@ import {
   HomeIcon,
   LightBulbIcon
 } from '@heroicons/react/24/outline';
-import { askQuestion } from '../services/aiService';
+import { askQuestion } from '../services/mcpAiService';
 
 const AIPropertyInsights = ({ property, language = 'arabic' }) => {
   const [insights, setInsights] = useState(null);

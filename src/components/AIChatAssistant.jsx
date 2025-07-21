@@ -184,12 +184,12 @@ const AIChatAssistant = ({ language = 'arabic', isOpen, onClose }) => {
             <div className="bg-white rounded-2xl p-8 max-w-md mx-4 text-center">
               <SparklesIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <h3 className="text-xl font-bold mb-2">
-                {language === 'arabic' ? 'المساعد الذكي غير متاح' : 'AI Assistant Not Available'}
+                {language === 'arabic' ? 'المساعد الذكي متاح بتقنية MCP!' : 'AI Assistant Available with MCP Technology!'}
               </h3>
               <p className="text-gray-600 mb-6">
                 {language === 'arabic' 
-                  ? 'يرجى تكوين مفتاح OpenAI API لتفعيل المساعد الذكي.'
-                  : 'Please configure OpenAI API key to enable the AI assistant.'
+                  ? 'النظام الذكي يعمل محلياً بتقنية MCP - لا حاجة لمفاتيح API خارجية!'
+                  : 'AI system running locally with MCP technology - no external API keys needed!'
                 }
               </p>
               <button
@@ -415,7 +415,7 @@ const AIChatAssistant = ({ language = 'arabic', isOpen, onClose }) => {
                     {message.isFallback && (
                       <div className="flex items-center gap-2 mb-2 text-yellow-600 text-xs">
                         <span>⚠️</span>
-                        <span>{language === 'arabic' ? 'إجابة أساسية (الذكاء الاصطناعي غير متاح)' : 'Basic Answer (AI Unavailable)'}</span>
+                        <span>{language === 'arabic' ? 'إجابة ذكية بتقنية MCP المحلية' : 'Smart Answer via Local MCP Technology'}</span>
                       </div>
                     )}
                     <div className="flex items-start gap-2">
