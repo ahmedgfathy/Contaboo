@@ -14,6 +14,7 @@
     "start-sqlite": "node server-sqlite-complete.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.16.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
