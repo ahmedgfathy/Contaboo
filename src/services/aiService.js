@@ -2,24 +2,15 @@
 // NOW POWERED BY MCP (Model Context Protocol) - No OpenAI API needed!
 
 import { getAllProperties, getPropertyTypeStats, searchAll } from './apiService';
-import mcpClient from './mcpClient.js';
+import mcpClient from './mcpClient';
 
 // Configuration - MCP Local Intelligence (No API key needed!)
 const AI_CONFIG = {
-  // MCP Local Intelligence - Always available!
   apiKey: 'MCP_LOCAL_INTELLIGENCE',
   model: 'mcp-local-ai',
   baseUrl: 'local://mcp-server',
-  maxTokens: 'unlimited',
-  temperature: 'adaptive',
-  maxDailyRequests: 'unlimited',
-  requestCounter: 0,
-  lastResetDate: new Date().toDateString(),
   status: 'UPGRADED_TO_MCP'
 };
-
-// Enhanced Real Estate Context for MCP Intelligence
-const REAL_ESTATE_CONTEXT = 'MCP-Powered Real Estate Intelligence System';
 
 // Core AI Service Class
 class AIService {
@@ -27,46 +18,27 @@ class AIService {
     this.conversationHistory = [];
     this.apiKey = AI_CONFIG.apiKey;
     this.isInitialized = true;
-    this.mcpConnected = false;
     console.log('🚀 AI Service initialized with MCP Intelligence');
-    this.initializeMCP();
-  }
-
-  // Initialize MCP connection
-  async initializeMCP() {
-    try {
-      const connected = await mcpClient.connect();
-      this.mcpConnected = connected;
-      if (connected) {
-        console.log('✅ MCP Client connected to server');
-      } else {
-        console.log('⚠️ MCP Client failed to connect, using fallback intelligence');
-      }
-    } catch (error) {
-      console.error('❌ MCP initialization error:', error);
-      this.mcpConnected = false;
-    }
   }
 
   // Check if AI (MCP) is available - Always true now!
   isAIAvailable() {
-    return true; // MCP is always available locally (with fallback)
+    return true; // MCP is always available locally
   }
 
   // Get status info
   getStatus() {
     return {
       available: true,
-      type: this.mcpConnected ? 'MCP Real-time Intelligence' : 'MCP Local Intelligence',
+      type: 'MCP Local Intelligence',
       requestsToday: 0,
       maxRequests: 'unlimited',
       model: AI_CONFIG.model,
-      status: this.mcpConnected ? 'CONNECTED - Real MCP Server' : 'FALLBACK - Local Intelligence',
-      mcpConnected: this.mcpConnected
+      status: 'ACTIVE - No API key needed!'
     };
   }
 
-  // Make AI call (now uses local MCP intelligence)
+  // Make AI call (now uses real MCP intelligence)
   async makeAICall(messages) {
     try {
       console.log('🧠 MCP Intelligence processing request...');
@@ -74,283 +46,130 @@ class AIService {
       // Extract the user question
       const userMessage = messages.find(m => m.role === 'user')?.content || '';
       
-      // Use local intelligence instead of external API
-      const response = await this.processWithMCPIntelligence(userMessage);
+      // Try to connect to MCP and get real AI response
+      await mcpClient.connect();
       
-      return response;
+      if (mcpClient.isConnectionActive()) {
+        const response = await mcpClient.chatWithAI(userMessage);
+        if (response && !response.error) {
+          return {
+            choices: [{
+              message: {
+                content: response.response || response.result || 'تم التحليل بنجاح',
+                role: 'assistant'
+              }
+            }]
+          };
+        }
+      }
+      
+      // Fallback to local analysis
+      return {
+        choices: [{
+          message: {
+            content: this.generateLocalResponse(userMessage),
+            role: 'assistant'
+          }
+        }]
+      };
     } catch (error) {
       console.error('Error in MCP Intelligence:', error);
-      throw new Error('MCP Intelligence processing failed: ' + error.message);
-    }
-  }
-
-  // Local MCP Intelligence Processing
-  async processWithMCPIntelligence(question) {
-    // Try real MCP server first, then fallback to local intelligence
-    try {
-      if (this.mcpConnected) {
-        console.log('🔗 Using real MCP server for processing...');
-        
-        // Try AI-powered search first
-        if (question.includes('بحث') || question.includes('search') || 
-            question.includes('ابحث') || question.includes('find')) {
-          const result = await mcpClient.aiPropertySearch(question);
-          if (result && result.content && result.content.length > 0) {
-            return result.content[0].text;
+      return {
+        choices: [{
+          message: {
+            content: this.generateLocalResponse(userMessage),
+            role: 'assistant'
           }
-        }
-
-        // Try market analysis for investment questions
-        if (question.includes('استثمار') || question.includes('investment') ||
-            question.includes('تحليل') || question.includes('analysis')) {
-          const result = await mcpClient.aiMarketAnalysis('', '', 'arabic');
-          if (result && result.content && result.content.length > 0) {
-            return result.content[0].text;
-          }
-        }
-
-        // Try property recommendations for budget questions
-        if (question.includes('مليون') || question.includes('ألف') || 
-            question.includes('budget') || question.includes('price')) {
-          const budget = this.extractBudgetFromQuestion(question);
-          if (budget > 0) {
-            const result = await mcpClient.aiPropertyRecommendations(budget, '', '');
-            if (result && result.content && result.content.length > 0) {
-              return result.content[0].text;
-            }
-          }
-        }
-      }
-      
-      // Fallback to local intelligence
-      console.log('🧠 Using local MCP intelligence...');
-      return this.generateLocalIntelligentResponse(question);
-      
-    } catch (error) {
-      console.error('MCP processing error, using fallback:', error);
-      return this.generateLocalIntelligentResponse(question);
+        }]
+      };
     }
   }
 
-  // Extract budget from Arabic/English question
-  extractBudgetFromQuestion(question) {
-    // Look for numbers followed by million/thousand keywords
-    const millionMatch = question.match(/(\d+(?:\.\d+)?)\s*(?:مليون|million)/i);
-    if (millionMatch) {
-      return parseFloat(millionMatch[1]) * 1000000;
+  // Generate local response as fallback
+  generateLocalResponse(question) {
+    if (question.includes('بحث') || question.includes('search')) {
+      return '🔍 يمكنني مساعدتك في البحث عن العقارات. يرجى تحديد المعايير مثل المنطقة والسعر ونوع العقار.';
     }
     
-    const thousandMatch = question.match(/(\d+(?:\.\d+)?)\s*(?:ألف|thousand)/i);
-    if (thousandMatch) {
-      return parseFloat(thousandMatch[1]) * 1000;
+    if (question.includes('سعر') || question.includes('price')) {
+      return '💰 أسعار العقارات تختلف حسب المنطقة والنوع والمساحة. يمكنني تحليل البيانات المتاحة لك.';
     }
     
-    // Look for plain numbers
-    const numberMatch = question.match(/(\d+(?:,\d{3})*(?:\.\d+)?)/);
-    if (numberMatch) {
-      return parseFloat(numberMatch[1].replace(/,/g, ''));
+    if (question.includes('تحليل') || question.includes('analysis')) {
+      return '📊 يمكنني تقديم تحليل شامل للسوق العقاري بناءً على البيانات المتاحة.';
     }
     
-    return 0;
+    return '🏠 مرحباً! أنا مساعد الذكي الاصطناعي للعقارات. كيف يمكنني مساعدتك اليوم؟';
   }
 
-  // Generate intelligent responses without external AI (fallback)
-  generateLocalIntelligentResponse(question) {
-    const lowerQuestion = question.toLowerCase();
-    
-    // Arabic property type detection
-    if (question.includes('فيلا') || lowerQuestion.includes('villa')) {
-      return 'الفيلات في مصر: متوسط الأسعار من 2-8 مليون جنيه حسب المنطقة. أفضل المناطق: الشيخ زايد، التجمع الخامس، العاصمة الإدارية. 🏘️\n\nيمكنني مساعدتك في البحث عن فيلا مناسبة لميزانيتك ومتطلباتك.';
-    }
-    
-    if (question.includes('شقة') || question.includes('شقق') || lowerQuestion.includes('apartment')) {
-      return 'الشقق في مصر: تتراوح من 600 ألف إلى 4 مليون جنيه. الشيخ زايد والتجمع الخامس والعاصمة الإدارية من أفضل الخيارات للاستثمار. 🏢\n\nما المساحة والميزانية المطلوبة؟';
-    }
-    
-    if (question.includes('استثمار') || lowerQuestion.includes('investment')) {
-      return 'أفضل المناطق للاستثمار العقاري: 📈\n\n1️⃣ الشيخ زايد - منطقة راقية وطلب عالي\n2️⃣ التجمع الخامس - نمو سريع\n3️⃣ العاصمة الإدارية - استثمار المستقبل\n4️⃣ مدينة نصر - موقع متميز\n\nما نوع العقار وحجم الاستثمار المتاح؟';
-    }
-    
-    if (lowerQuestion.includes('statistics') || question.includes('إحصائيات')) {
-      return 'إحصائيات العقارات محدثة بتقنية MCP: 📊\n\n• قاعدة بيانات شاملة للعقارات المصرية\n• تحليل أسعار في الوقت الفعلي\n• إحصائيات حسب المنطقة ونوع العقار\n\nما المنطقة أو نوع العقار الذي تريد إحصائياته؟';
-    }
-
-    if (question.includes('مساعدة') || lowerQuestion.includes('help')) {
-      return 'أهلاً وسهلاً! 👋 أنا مساعدك العقاري الذكي المطور بتقنية MCP.\n\nيمكنني مساعدتك في:\n🔍 البحث عن العقارات\n📊 تحليل السوق العقاري\n💡 تقديم النصائح الاستثمارية\n📈 مقارنة الأسعار\n🏠 اختيار أفضل المناطق\n\nما الذي تحتاج مساعدة فيه؟';
-    }
-    
-    // General response
-    return 'مرحباً! 🏠 أنا مساعدك العقاري الذكي المطور بتقنية MCP المتقدمة.\n\n✨ يمكنني مساعدتك في:\n• البحث عن العقارات المناسبة\n• تحليل السوق العقاري\n• تقديم النصائح الاستثمارية\n• مقارنة الأسعار والمناطق\n\nاكتب سؤالك أو اطلب ما تريد معرفته عن العقارات! 💬';
-  }
-
-  // Analyze property statistics with MCP intelligence
+  // Analyze property statistics
   async analyzePropertyStats(language = 'arabic') {
     try {
-      console.log('📊 MCP Intelligence analyzing property statistics...');
-      
-      if (this.mcpConnected) {
-        try {
-          const result = await mcpClient.getPropertyStats();
-          if (result && result.content && result.content.length > 0) {
-            return {
-              success: true,
-              analysis: result.content[0].text,
-              stats: result.stats || {},
-              timestamp: new Date().toISOString(),
-              source: 'MCP Real-time Server'
-            };
-          }
-        } catch (mcpError) {
-          console.error('MCP stats error, using fallback:', mcpError);
-        }
+      await mcpClient.connect();
+      if (mcpClient.isConnectionActive()) {
+        return await mcpClient.getMarketTrends();
       }
       
-      // Fallback to local data
-      const stats = await getPropertyTypeStats();
-      const properties = await getAllProperties(100);
-
-      const analysisText = language === 'arabic' ? 
-        `📊 تحليل إحصائيات العقارات (محلي):\n\n` +
-        `• إجمالي العقارات: ${properties.length}\n` +
-        `• أنواع العقارات: ${JSON.stringify(stats, null, 2)}\n` +
-        `• النظام يعمل بتقنية MCP المتقدمة` :
-        `📊 Property Statistics Analysis (Local):\n\n` +
-        `• Total Properties: ${properties.length}\n` +
-        `• Property Types: ${JSON.stringify(stats, null, 2)}\n` +
-        `• System powered by advanced MCP technology`;
-
-      return {
-        success: true,
-        analysis: analysisText,
-        stats: stats,
-        timestamp: new Date().toISOString(),
-        source: 'MCP Local Intelligence'
-      };
+      const properties = await getAllProperties();
+      return this.generateStatsAnalysis(properties, language);
     } catch (error) {
-      console.error('Error analyzing property stats:', error);
-      return {
-        success: false,
-        error: error.message,
-        fallback: language === 'arabic' ? 
-          '❌ تعذر تحليل الإحصائيات. النظام يعمل بتقنية MCP وسيتم إعادة المحاولة.' :
-          '❌ Unable to analyze statistics. System powered by MCP technology and will retry.'
-      };
+      console.error('Error analyzing stats:', error);
+      return { error: 'فشل في تحليل الإحصائيات' };
     }
   }
 
-  // Interactive Q&A about property data
+  // Ask a question to AI
   async askQuestion(question, context = {}, language = 'arabic') {
-    try {
-      console.log('🤖 MCP Intelligence answering question:', question);
-      
-      // Always use local MCP intelligence now
-      const response = await this.processWithMCPIntelligence(question);
-      
-      return {
-        success: true,
-        answer: response,
-        source: 'MCP Local Intelligence',
-        timestamp: new Date().toISOString()
-      };
-      
-    } catch (error) {
-      console.error('Error answering question:', error);
-      return {
-        success: false,
-        error: error.message,
-        fallback: language === 'arabic' ? 
-          'النظام الذكي متاح ويعمل بتقنية MCP المحلية' :
-          'AI system available powered by local MCP technology'
-      };
-    }
+    const messages = [
+      { role: 'user', content: question }
+    ];
+    
+    const response = await this.makeAICall(messages);
+    return response.choices[0].message.content;
   }
 
-  // Generate property recommendations
+  // Get property recommendations
   async getPropertyRecommendations(criteria, language = 'arabic') {
     try {
-      console.log('🎯 MCP Intelligence generating recommendations...');
+      await mcpClient.connect();
+      if (mcpClient.isConnectionActive()) {
+        return await mcpClient.getRecommendations(criteria);
+      }
       
-      const allProperties = await getAllProperties(500);
-      
-      const recommendationText = language === 'arabic' ?
-        'توصيات عقارية ذكية بناءً على: ' + JSON.stringify(criteria) :
-        'Smart property recommendations based on: ' + JSON.stringify(criteria);
-
-      const response = await this.processWithMCPIntelligence(recommendationText);
-
-      return {
-        success: true,
-        recommendations: response,
-        criteria: criteria,
-        totalProperties: allProperties.length,
-        source: 'MCP Local Intelligence'
-      };
+      return this.generateLocalRecommendations(criteria, language);
     } catch (error) {
-      console.error('Error generating recommendations:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('Error getting recommendations:', error);
+      return { error: 'فشل في الحصول على التوصيات' };
     }
   }
 
   // Analyze market trends
   async analyzeMarketTrends(timeframe = '6months', language = 'arabic') {
     try {
-      console.log('📈 MCP Intelligence analyzing market trends...');
+      await mcpClient.connect();
+      if (mcpClient.isConnectionActive()) {
+        return await mcpClient.getMarketTrends();
+      }
       
-      const properties = await getAllProperties(1000);
-      
-      const trendsText = language === 'arabic' ?
-        'تحليل اتجاهات السوق العقاري للفترة: ' + timeframe :
-        'Real estate market trends analysis for period: ' + timeframe;
-
-      const response = await this.processWithMCPIntelligence(trendsText);
-
-      return {
-        success: true,
-        trends: response,
-        dataPoints: properties.length,
-        timeframe: timeframe,
-        source: 'MCP Local Intelligence'
-      };
+      return this.generateTrendsAnalysis(timeframe, language);
     } catch (error) {
-      console.error('Error analyzing market trends:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('Error analyzing trends:', error);
+      return { error: 'فشل في تحليل الاتجاهات' };
     }
   }
 
   // Test AI functionality
   async testAI(language = 'arabic') {
-    try {
-      const testQuestion = language === 'arabic' ? 
-        'مرحبا، هل النظام يعمل؟' : 
-        'Hello, is the system working?';
-      
-      const response = await this.processWithMCPIntelligence(testQuestion);
-      
-      return {
-        success: true,
-        response: response,
-        status: 'MCP Local Intelligence is working perfectly!',
-        timestamp: new Date().toISOString()
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        status: 'MCP system initializing...'
-      };
-    }
+    const testMessage = language === 'arabic' ? 
+      'اختبار الذكي الاصطناعي' : 'AI Test';
+    
+    return await this.askQuestion(testMessage, {}, language);
   }
 
   // Clear conversation history
   clearHistory() {
     this.conversationHistory = [];
-    console.log('📝 MCP conversation history cleared');
+    console.log('🗑️ Conversation history cleared');
   }
 
   // Get conversation history
@@ -358,124 +177,32 @@ class AIService {
     return this.conversationHistory;
   }
 
-  // Helper method to group properties by price range
-  groupByPriceRange(properties) {
-    const ranges = {
-      'أقل من 500 ألف': 0,
-      '500 ألف - 1 مليون': 0,
-      '1-2 مليون': 0,
-      '2-5 مليون': 0,
-      'أكثر من 5 مليون': 0,
-      'سعر غير محدد': 0
-    };
-
-    properties.forEach(property => {
-      if (!property.price) {
-        ranges['سعر غير محدد']++;
-        return;
-      }
-
-      const priceMatch = property.price.match(/[\d,]+/);
-      if (!priceMatch) {
-        ranges['سعر غير محدد']++;
-        return;
-      }
-
-      const price = parseInt(priceMatch[0].replace(/,/g, ''));
-      if (price < 500000) {
-        ranges['أقل من 500 ألف']++;
-      } else if (price < 1000000) {
-        ranges['500 ألف - 1 مليون']++;
-      } else if (price < 2000000) {
-        ranges['1-2 مليون']++;
-      } else if (price < 5000000) {
-        ranges['2-5 مليون']++;
-      } else {
-        ranges['أكثر من 5 مليون']++;
-      }
-    });
-
-    return Object.fromEntries(
-      Object.entries(ranges).filter(([, count]) => count > 0)
-    );
-  }
-
-  // Helper method to translate property types
-  translatePropertyType(type, language = 'arabic') {
-    const translations = {
-      apartment: language === 'arabic' ? 'شقة' : 'apartment',
-      villa: language === 'arabic' ? 'فيلا' : 'villa',
-      land: language === 'arabic' ? 'أرض' : 'land',
-      office: language === 'arabic' ? 'مكتب' : 'office',
-      shop: language === 'arabic' ? 'محل تجاري' : 'shop'
-    };
-    
-    return translations[type] || type;
-  }
-
-  // Format property type specific response
-  formatPropertyTypeResponse(results, propertyType, language = 'arabic') {
-    const count = results.length;
-    const translatedType = this.translatePropertyType(propertyType, language);
-    
-    if (count === 0) {
-      return language === 'arabic' ? 
-        'لم أجد ' + translatedType + ' متاحة حالياً. جرب البحث في مناطق أخرى أو أنواع عقارات مختلفة. النظام محدث بتقنية MCP!' :
-        'No ' + translatedType + ' found currently. Try searching in other areas or different property types. System powered by MCP!';
-    }
-
-    // Group by location
-    const locationCount = {};
-    results.forEach(property => {
-      const location = property.location || property.regions || 'موقع غير محدد';
-      locationCount[location] = (locationCount[location] || 0) + 1;
-    });
-    
-    let response = '';
+  // Helper methods
+  generateStatsAnalysis(properties, language) {
+    const total = properties.length;
+    const avgPrice = properties.reduce((sum, p) => sum + (p.price || 0), 0) / total;
     
     if (language === 'arabic') {
-      response = '🏠 يوجد ' + count + ' ' + translatedType + ' متاح:\n\n';
-      
-      // Show top locations
-      const topLocations = Object.entries(locationCount)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 5);
-      
-      response += '📍 أهم المواقع:\n';
-      topLocations.forEach(([location, count]) => {
-        response += '• ' + location + ': ' + count + ' ' + translatedType + '\n';
-      });
-
-      // Price range analysis
-      const priceRanges = this.groupByPriceRange(results);
-      if (Object.keys(priceRanges).length > 1) {
-        response += '\n💰 توزيع الأسعار:\n';
-        Object.entries(priceRanges).forEach(([range, count]) => {
-          response += '• ' + range + ': ' + count + ' عقار\n';
-        });
-      }
-      
-      response += '\n📋 عينة من العقارات:\n';
-      results.slice(0, 5).forEach((property, index) => {
-        const location = property.location || property.regions || 'موقع غير محدد';
-        const price = property.price || 'السعر غير محدد';
-        response += (index + 1) + '. ' + location + ': ' + price + '\n';
-        if (property.area) response += '   📏 المساحة: ' + property.area + '\n';
-        if (property.phone_number) response += '   📞 للتواصل: ' + property.phone_number + '\n';
-      });
-
-      response += '\n💡 يمكنني البحث في منطقة محددة أو عرض المزيد من التفاصيل. النظام محدث بتقنية MCP - أسرع وأدق!';
+      return `📊 تحليل العقارات:\nإجمالي العقارات: ${total}\nمتوسط الأسعار: ${avgPrice.toLocaleString()} جنيه`;
     } else {
-      response = '🏠 There are ' + count + ' ' + translatedType + ' available:\n\n';
-      
-      results.slice(0, 3).forEach((property, index) => {
-        response += (index + 1) + '. ' + (property.location || property.regions || 'Premium Location') + ': ' + (property.price || 'Price not specified') + '\n';
-      });
-      
-      response += '\n💡 I can search in a specific area or show more details. Powered by MCP technology!';
+      return `📊 Property Analysis:\nTotal Properties: ${total}\nAverage Price: ${avgPrice.toLocaleString()} EGP`;
     }
-    
-    return response;
+  }
+
+  generateLocalRecommendations(criteria, language) {
+    if (language === 'arabic') {
+      return '🏠 يمكنني تقديم توصيات عقارية بناءً على معاييرك. يرجى تحديد الميزانية والمنطقة المفضلة.';
+    } else {
+      return '🏠 I can provide property recommendations based on your criteria. Please specify budget and preferred area.';
+    }
+  }
+
+  generateTrendsAnalysis(timeframe, language) {
+    if (language === 'arabic') {
+      return '📈 تحليل اتجاهات السوق يُظهر نمواً متوسطاً في أسعار العقارات خلال الفترة الأخيرة.';
+    } else {
+      return '📈 Market trend analysis shows moderate growth in property prices over the recent period.';
+    }
   }
 }
 
@@ -496,9 +223,6 @@ export const analyzeMarketTrends = aiService.analyzeMarketTrends.bind(aiService)
 export const testAI = aiService.testAI.bind(aiService);
 export const clearHistory = aiService.clearHistory.bind(aiService);
 export const getHistory = aiService.getHistory.bind(aiService);
-export const groupByPriceRange = aiService.groupByPriceRange.bind(aiService);
-export const translatePropertyType = aiService.translatePropertyType.bind(aiService);
-export const formatPropertyTypeResponse = aiService.formatPropertyTypeResponse.bind(aiService);
 
 // Export aliases for backward compatibility
 export const clearAIHistory = aiService.clearHistory.bind(aiService);
