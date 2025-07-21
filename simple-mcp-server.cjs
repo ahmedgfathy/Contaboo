@@ -88,7 +88,7 @@ app.post('/tools/:toolName', (req, res) => {
   });
 });
 
-const PORT = 3001;
+const PORT = 3002;
 app.listen(PORT, () => {
   console.log(`🌐 Simple MCP HTTP Server running on http://localhost:${PORT}`);
   console.log(`📡 Ready to handle AI queries`);

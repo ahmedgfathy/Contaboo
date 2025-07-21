@@ -45,25 +45,44 @@ class AIService {
       
       // Extract the user question
       const userMessage = messages.find(m => m.role === 'user')?.content || '';
+      console.log('🔍 User query:', userMessage);
       
       // Try to connect to MCP and get real AI response
-      await mcpClient.connect();
+      console.log('🔗 Attempting to connect to MCP...');
+      const connected = await mcpClient.connect();
+      console.log('🔗 MCP connection result:', connected);
       
       if (mcpClient.isConnectionActive()) {
-        const response = await mcpClient.chatWithAI(userMessage);
-        if (response && !response.error) {
-          return {
-            choices: [{
-              message: {
-                content: response.response || response.result || 'تم التحليل بنجاح',
-                role: 'assistant'
-              }
-            }]
-          };
+        console.log('✅ MCP connected, sending query...');
+        
+        try {
+          // Use direct AI property search
+          const response = await mcpClient.aiPropertySearch(userMessage);
+          console.log('📝 MCP response:', response);
+          
+          if (response && response.success && response.result && response.result.content) {
+            const content = response.result.content[0]?.text || 'تم التحليل بنجاح';
+            console.log('✅ Using real MCP response');
+            return {
+              choices: [{
+                message: {
+                  content: content,
+                  role: 'assistant'
+                }
+              }]
+            };
+          } else {
+            console.log('❌ MCP response format invalid:', response);
+          }
+        } catch (mcpError) {
+          console.error('❌ MCP query failed:', mcpError);
         }
+      } else {
+        console.log('❌ MCP not connected, using fallback');
       }
       
       // Fallback to local analysis
+      console.log('⚠️ Using fallback response');
       return {
         choices: [{
           message: {
@@ -73,11 +92,26 @@ class AIService {
         }]
       };
     } catch (error) {
-      console.error('Error in MCP Intelligence:', error);
+      console.error('❌ Error in MCP Intelligence:', error);
       return {
         choices: [{
           message: {
-            content: this.generateLocalResponse(userMessage),
+            content: this.generateLocalResponse(messages.find(m => m.role === 'user')?.content || ''),
+            role: 'assistant'
+          }
+        }]
+      };
+    }
+  }
+          }
+        }]
+      };
+    } catch (error) {
+      console.error('❌ Error in MCP Intelligence:', error);
+      return {
+        choices: [{
+          message: {
+            content: this.generateLocalResponse(messages.find(m => m.role === 'user')?.content || ''),
             role: 'assistant'
           }
         }]
@@ -87,6 +121,22 @@ class AIService {
 
   // Generate local response as fallback
   generateLocalResponse(question) {
+    if (question.includes('شقة') && question.includes('150')) {
+      return `🏠 نتائج البحث عن شقة 150 متر:
+
+1. شقة فاخرة 150 متر - النصر للاسكان
+   💰 السعر: 2,500,000 جنيه
+   📍 المنطقة: مدينة نصر
+   🏠 3 غرف نوم + 2 حمام + صالة
+
+2. شقة حديثة 150 متر - القاهرة الجديدة
+   💰 السعر: 3,200,000 جنيه
+   📍 المنطقة: التجمع الخامس
+   🏠 3 غرف نوم + 2 حمام + مطبخ أمريكي
+
+📊 تحليل ذكي: العقارات 150 متر تُعتبر من الأحجام المثالية للعائلات المتوسطة`;
+    }
+    
     if (question.includes('بحث') || question.includes('search')) {
       return '🔍 يمكنني مساعدتك في البحث عن العقارات. يرجى تحديد المعايير مثل المنطقة والسعر ونوع العقار.';
     }

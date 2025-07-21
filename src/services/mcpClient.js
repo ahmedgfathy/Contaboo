@@ -2,7 +2,7 @@
 class MCPClient {
   constructor() {
     this.isConnected = false;
-    this.apiUrl = 'http://localhost:3001'; // MCP server HTTP endpoint
+    this.apiUrl = 'http://localhost:3002'; // MCP server HTTP endpoint
   }
 
   async connect() {
