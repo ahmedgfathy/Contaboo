@@ -103,21 +103,6 @@ class AIService {
       };
     }
   }
-          }
-        }]
-      };
-    } catch (error) {
-      console.error('❌ Error in MCP Intelligence:', error);
-      return {
-        choices: [{
-          message: {
-            content: this.generateLocalResponse(messages.find(m => m.role === 'user')?.content || ''),
-            role: 'assistant'
-          }
-        }]
-      };
-    }
-  }
 
   // Generate local response as fallback
   generateLocalResponse(question) {
