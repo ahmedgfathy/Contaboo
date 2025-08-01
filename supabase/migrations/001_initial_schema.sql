@@ -265,10 +265,7 @@ INSERT INTO auth.users (
   is_super_admin,
   created_at,
   updated_at,
-  confirmation_sent_at,
-  email_change_sent_at,
-  new_email,
-  new_phone
+  confirmation_sent_at
 ) VALUES (
   uuid_generate_v4(),
   '00000000-0000-0000-0000-000000000000',
@@ -283,8 +280,5 @@ INSERT INTO auth.users (
   true,
   NOW(),
   NOW(),
-  NOW(),
-  NOW(),
-  '',
-  ''
+  NOW()
 ) ON CONFLICT (phone) DO NOTHING;

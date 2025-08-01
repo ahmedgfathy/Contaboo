@@ -55,8 +55,7 @@ INSERT INTO public.users (
   'Main Admin',
   'admin',
   true
-) ON CONFLICT (id) DO UPDATE SET
-  mobile_number = '01002778090',
+) ON CONFLICT (mobile_number) DO UPDATE SET
   full_name = 'Main Admin',
   role = 'admin',
   is_active = true,
