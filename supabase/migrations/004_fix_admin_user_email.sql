@@ -1,4 +1,9 @@
--- First, let's create the main admin user in auth.users
+-- Fix admin user to use email-based authentication instead of phone
+-- First, delete the existing admin user if it exists
+DELETE FROM auth.users WHERE email = 'admin@contaboo.com' OR phone = '01002778090';
+DELETE FROM public.users WHERE mobile_number = '01002778090';
+
+-- Create new admin user with email format
 INSERT INTO auth.users (
   id,
   instance_id,
@@ -18,26 +23,22 @@ INSERT INTO auth.users (
   'authenticated',
   'authenticated',
   '01002778090@contaboo.local',
-  '$2a$10$ZRXz8QJ5N5Z5N5Z5N5Z5NuQJ5N5Z5N5Z5N5Z5N5Z5N5Z5N5Z5N5Z5O', -- This will be updated
+  crypt('ZeroCall20!@H', gen_salt('bf')),
   NOW(),
   '{"mobile_number": "01002778090", "full_name": "Main Admin", "role": "admin"}'::jsonb,
   true,
   NOW(),
   NOW(),
   NOW()
-) ON CONFLICT (email) DO UPDATE SET
-  encrypted_password = '$2a$10$ZRXz8QJ5N5Z5N5Z5N5Z5NuQJ5N5Z5N5Z5N5Z5N5Z5N5Z5N5Z5N5Z5O',
+) ON CONFLICT (id) DO UPDATE SET
+  email = '01002778090@contaboo.local',
+  encrypted_password = crypt('ZeroCall20!@H', gen_salt('bf')),
   email_confirmed_at = NOW(),
   raw_user_meta_data = '{"mobile_number": "01002778090", "full_name": "Main Admin", "role": "admin"}'::jsonb,
   is_super_admin = true,
   updated_at = NOW();
 
--- Now let's properly hash and update the password
-UPDATE auth.users 
-SET encrypted_password = crypt('ZeroCall20!@H', gen_salt('bf'))
-WHERE email = '01002778090@contaboo.local';
-
--- Make sure the user record exists in public.users
+-- Create the corresponding public.users record
 INSERT INTO public.users (
   id,
   mobile_number,

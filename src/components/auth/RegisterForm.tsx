@@ -29,9 +29,11 @@ export default function RegisterForm() {
     }
 
     try {
-      // Create user with phone number as primary identifier
+      // Create user with email format but store mobile number
+      const email = `${formData.mobileNumber}@contaboo.local`
+      
       const { error } = await supabase.auth.signUp({
-        phone: formData.mobileNumber,
+        email: email,
         password: formData.password,
         options: {
           data: {

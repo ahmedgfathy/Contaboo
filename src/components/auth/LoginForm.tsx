@@ -18,9 +18,11 @@ export default function LoginForm() {
     setError(null)
 
     try {
-      // For mobile-based login, we'll use phone as the identifier
+      // Convert mobile number to email format for authentication
+      const email = `${mobileNumber}@contaboo.local`
+      
       const { error } = await supabase.auth.signInWithPassword({
-        phone: mobileNumber,
+        email: email,
         password,
       })
 
