@@ -1,0 +1,400 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  agent
+  client
+}
+
+enum PropertyStatus {
+  available
+  sold
+  rented
+  pending
+}
+
+enum PropertyType {
+  apartment    // شقه
+  house        // بيت
+  villa        // فيلا
+  commercial   // تجاري
+  land         // قطعه ارض / ارض
+  warehouse    // مخزن
+  office       // مكتب
+  shop         // محل
+  other        // أخرى
+}
+
+enum TransactionType {
+  for_sale     // للبيع
+  for_rent     // للايجار
+  wanted       // مطلوب
+  sold         // تم البيع
+  rented       // تم الايجار
+}
+
+model User {
+  id            String   @id @default(cuid())
+  mobileNumber  String   @unique @map("mobile_number")
+  email         String?  @unique
+  fullName      String?  @map("full_name")
+  avatarUrl     String?  @map("avatar_url")
+  role          UserRole @default(client)
+  isActive      Boolean  @default(true) @map("is_active")
+  passwordHash  String   @map("password_hash")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  agent         Agent?
+  client        Client?
+  properties    Property[]
+  leads         Lead[]
+  whatsappMessages WhatsAppMessage[]
+
+  @@map("users")
+}
+
+model Agent {
+  id           String    @id @default(cuid())
+  userId       String    @unique @map("user_id")
+  companyName  String?   @map("company_name")
+  licenseNumber String?  @unique @map("license_number")
+  experience   Int?      // Years of experience
+  rating       Float?    @default(0)
+  totalSales   Int       @default(0) @map("total_sales")
+  joinedAt     DateTime  @default(now()) @map("joined_at")
+
+  // Relations
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  properties   Property[]
+  leads        Lead[]
+
+  @@map("agents")
+}
+
+model Client {
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  budget       Float?
+  preferences  Json?    // JSON object for preferences
+  location     String?
+  joinedAt     DateTime @default(now()) @map("joined_at")
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads        Lead[]
+
+  @@map("clients")
+}
+
+// New models for WhatsApp data extraction
+model WhatsAppMessage {
+  id             String   @id @default(cuid())
+  messageDate    DateTime @map("message_date")
+  senderNumber   String   @map("sender_number")
+  senderName     String?  @map("sender_name")
+  messageText    String   @map("message_text")
+  processed      Boolean  @default(false)
+  extractedData  Json?    @map("extracted_data")
+  userId         String?  @map("user_id")
+  propertyId     String?  @map("property_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user           User?    @relation(fields: [userId], references: [id])
+  property       Property? @relation(fields: [propertyId], references: [id])
+
+  @@map("whatsapp_messages")
+}
+
+model Property {
+  id              String         @id @default(cuid())
+  title           String
+  description     String?
+  type            PropertyType
+  transactionType TransactionType @map("transaction_type")
+  status          PropertyStatus  @default(available)
+  
+  // Location details
+  areaNumber      Int?           @map("area_number")      // رقم الحي
+  neighborhoodNumber Int?        @map("neighborhood_number") // رقم المجاوره
+  blockNumber     String?        @map("block_number")     // رقم الكتله
+  streetName      String?        @map("street_name")
+  
+  // Property specifications
+  area            Float?         // مساحه بالمتر
+  floorNumber     Int?           @map("floor_number")     // رقم الدور
+  roomsCount      Int?           @map("rooms_count")      // عدد الغرف
+  bathroomsCount  Int?           @map("bathrooms_count")  // عدد الحمامات
+  
+  // Financial details
+  totalPrice      Float?         @map("total_price")      // السعر الكامل
+  installmentAmount Float?       @map("installment_amount") // قسط شهري
+  downPayment     Float?         @map("down_payment")     // مقدم
+  yearsRemaining  Int?           @map("years_remaining")  // سنوات باقيه
+  yearsPaid       Int?           @map("years_paid")       // سنوات مدفوعه
+  
+  // Features and conditions
+  finishing       String?        // تشطيب
+  furnished       Boolean?       // مفروش
+  utilities       Json?          // خدمات متاحه
+  
+  // Contact and agent info
+  agentId         String?        @map("agent_id")
+  contactNumber   String?        @map("contact_number")
+  ownerId         String         @map("owner_id")
+  
+  // Images and documents
+  images          Json?          // Array of image URLs
+  documents       Json?          // Array of document URLs
+  
+  // Timestamps
+  datePosted      DateTime?      @map("date_posted")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  agent           Agent?         @relation(fields: [agentId], references: [id])
+  owner           User           @relation(fields: [ownerId], references: [id])
+  leads           Lead[]
+  features        PropertyFeature[]
+  whatsappMessages WhatsAppMessage[]
+
+  @@map("properties")
+}
+
+model PropertyFeature {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  featureId    String   @map("feature_id")
+  value        String?  // For features that have values
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  feature      Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@unique([propertyId, featureId])
+  @@map("property_features")
+}
+
+model Feature {
+  id           String   @id @default(cuid())
+  nameAr       String   @map("name_ar")      // الاسم بالعربي
+  nameEn       String   @map("name_en")      // الاسم بالانجليزي
+  category     String                        // فئة الميزه
+  description  String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  propertyFeatures PropertyFeature[]
+
+  @@map("features")
+}
+
+model Area {
+  id           String   @id @default(cuid())
+  number       Int      @unique              // رقم الحي
+  nameAr       String   @map("name_ar")      // اسم الحي بالعربي
+  nameEn       String?  @map("name_en")      // اسم الحي بالانجليزي
+  city         String   @default("العاشر من رمضان") // المدينه
+  description  String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  neighborhoods Neighborhood[]
+
+  @@map("areas")
+}
+
+model Neighborhood {
+  id           String   @id @default(cuid())
+  number       Int                           // رقم المجاوره
+  areaId       String   @map("area_id")     // رقم الحي
+  nameAr       String?  @map("name_ar")     // اسم المجاوره
+  nameEn       String?  @map("name_en")
+  description  String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  area         Area     @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@unique([number, areaId])
+  @@map("neighborhoods")
+}
+
+model Lead {
+  id           String     @id @default(cuid())
+  propertyId   String     @map("property_id")
+  clientId     String     @map("client_id")
+  agentId      String?    @map("agent_id")
+  status       String     @default("new")
+  budget       Float?
+  notes        String?
+  contactedAt  DateTime?  @map("contacted_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  property     Property   @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  client       Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  agent        Agent?     @relation(fields: [agentId], references: [id])
+  clientUser   User       @relation(fields: [clientId], references: [id])
+
+  @@map("leads")
+}
+  appointments  Appointment[]
+  transactions  Transaction[]
+
+  @@map("users")
+}
+
+model Agent {
+  id               String  @id @default(cuid())
+  userId           String  @unique @map("user_id")
+  licenseNumber    String? @map("license_number")
+  specialization   String?
+  bio              String?
+  commissionRate   Float   @default(0.03) @map("commission_rate")
+  propertiesCount  Int     @default(0) @map("properties_count")
+  totalSales       Float   @default(0) @map("total_sales")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedClients  Client[]
+
+  @@map("agents")
+}
+
+model Client {
+  id                    String        @id @default(cuid())
+  userId                String        @unique @map("user_id")
+  preferredLocation     String?       @map("preferred_location")
+  budgetMin             Float?        @map("budget_min")
+  budgetMax             Float?        @map("budget_max")
+  preferredPropertyType PropertyType? @map("preferred_property_type")
+  notes                 String?
+  assignedAgentId       String?       @map("assigned_agent_id")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAgent Agent?  @relation(fields: [assignedAgentId], references: [id])
+
+  @@map("clients")
+}
+
+model Property {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  location    String
+  address     String?
+  bedrooms    Int?
+  bathrooms   Int?
+  area        Float?
+  propertyType PropertyType  @map("property_type")
+  status      PropertyStatus @default(available)
+  images      String?        // JSON array of image URLs
+  features    String?        // JSON array of features
+  agentId     String?        @map("agent_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  agent        User?           @relation(fields: [agentId], references: [id])
+  propertyImages PropertyImage[]
+  leads        Lead[]
+  appointments Appointment[]
+  transactions Transaction[]
+
+  @@map("properties")
+}
+
+model PropertyImage {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  imageUrl     String   @map("image_url")
+  altText      String?  @map("alt_text")
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  displayOrder Int      @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_images")
+}
+
+model Lead {
+  id         String   @id @default(cuid())
+  propertyId String   @map("property_id")
+  userId     String   @map("user_id")
+  message    String?
+  phone      String?
+  email      String?
+  status     String   @default("new")
+  source     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("leads")
+}
+
+model Appointment {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  userId       String   @map("user_id")
+  scheduledAt  DateTime @map("scheduled_at")
+  status       String   @default("scheduled")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  buyerId      String   @map("buyer_id")
+  amount       Float
+  commission   Float?
+  status       String   @default("pending")
+  closingDate  DateTime? @map("closing_date")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buyer    User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}

@@ -24,6 +24,10 @@
 .DS_Store
 *.pem
 
+# WhatsApp chat exports (local only)
+/whatsapp_chat_exports/
+whatsapp_chat_exports/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface User {
   id: string
@@ -136,10 +137,13 @@ export default function AdminDashboard() {
                   <p className="text-3xl font-bold text-purple-600">{stats.totalClients}</p>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium text-gray-900">Total Properties</h3>
-                  <p className="text-3xl font-bold text-orange-600">{stats.totalProperties}</p>
-                </div>
+                                <Link 
+                  href="/crm/properties"
+                  className="group bg-white rounded-lg shadow-md border border-gray-200 p-6 hover:shadow-lg hover:border-indigo-300 transition-all duration-200"
+                >
+                  <h3 className="text-lg font-medium text-gray-900 group-hover:text-indigo-600">Total Properties</h3>
+                  <p className="text-3xl font-bold text-orange-600 group-hover:text-indigo-600">{stats.totalProperties}</p>
+                </Link>
                 
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium text-gray-900">Available</h3>
@@ -172,9 +176,12 @@ export default function AdminDashboard() {
                 <div className="bg-white p-6 rounded-lg shadow">
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Property Management</h3>
                   <div className="space-y-2">
-                    <button className="w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded">
+                    <Link 
+                      href="/crm/properties"
+                      className="block w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                    >
                       View All Properties
-                    </button>
+                    </Link>
                     <button className="w-full text-left px-4 py-2 text-blue-600 hover:bg-blue-50 rounded">
                       Add New Property
                     </button>
