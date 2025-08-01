@@ -26,7 +26,10 @@ RETURNS TRIGGER AS $$
 BEGIN
   -- Auto-confirm the user
   NEW.email_confirmed_at = NOW();
-  NEW.phone_confirmed_at = NOW();
+  NEW.confirmed_at = NOW();
+  IF NEW.phone IS NOT NULL THEN
+    NEW.phone_confirmed_at = NOW();
+  END IF;
   
   RETURN NEW;
 END;
