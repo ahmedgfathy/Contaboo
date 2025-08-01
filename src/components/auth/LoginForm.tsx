@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useLanguage } from '@/contexts/LanguageContext'
+import LanguageSwitcher from '@/components/common/LanguageSwitcher'
 
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('')
@@ -10,6 +12,7 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const { t } = useLanguage()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,93 +60,99 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="flex justify-center mb-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <div className="flex justify-between items-center mb-6">
             <Link
               href="/"
-              className="text-blue-600 hover:text-blue-500 text-sm font-medium"
+              className="text-blue-600 hover:text-blue-500 text-sm font-medium transition-colors flex items-center"
             >
-              ← Back to Home
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              {t('backToHome')}
             </Link>
+            <LanguageSwitcher />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Access your Real Estate CRM
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="identifier" className="sr-only">
-                Mobile Number or Email
-              </label>
-              <input
-                id="identifier"
-                name="identifier"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Mobile number or email"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-extrabold text-gray-900 arabic-text">
+              {t('login')}
+            </h2>
+            <p className="mt-2 text-sm text-gray-600 arabic-text">
+              دخول إلى نظام إدارة العقارات
+            </p>
           </div>
+          <form className="space-y-6" onSubmit={handleLogin}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg arabic-text shadow-sm">
+                {error}
+              </div>
+            )}
+            
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="identifier" className="sr-only">
+                  {t('mobile')} {t('email')}
+                </label>
+                <input
+                  id="identifier"
+                  name="identifier"
+                  type="text"
+                  required
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm shadow-sm transition-all duration-200"
+                  placeholder={`${t('mobile')} أو ${t('email')}`}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="password" className="sr-only">
+                  {t('password')}
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm shadow-sm transition-all duration-200"
+                  placeholder={t('password')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link
-                href="/auth/register"
-                className="font-medium text-blue-600 hover:text-blue-500"
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
               >
-                Register here
-              </Link>
-            </p>
-          </div>
+                {loading ? `${t('loading')}` : t('signIn')}
+              </button>
+            </div>
 
-          <div className="text-center mt-4">
-            <p className="text-xs text-gray-500">
-              Admin login: Use your email ({process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'ahmedgfathy@gmail.com'})
-            </p>
-          </div>
-        </form>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 arabic-text">
+                {t('dontHaveAccount')}{' '}
+                <Link
+                  href="/auth/register"
+                  className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
+                >
+                  {t('register')}
+                </Link>
+              </p>
+            </div>
+
+            <div className="text-center mt-4">
+              <p className="text-xs text-gray-500 arabic-text">
+                دخول المدير: استخدم البريد الإلكتروني ({process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'ahmedgfathy@gmail.com'})
+              </p>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

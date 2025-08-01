@@ -3,13 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-cairo: 'Cairo', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,8 +13,118 @@
   }
 }
 
+/* Default RTL for Arabic */
+* {
+  direction: rtl;
+}
+
+html {
+  font-family: var(--font-cairo), 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  direction: rtl;
+  text-align: right;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-cairo), 'Cairo', sans-serif;
+  direction: rtl;
+  text-align: right;
+  /* Better Arabic text rendering */
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* RTL Support for common elements */
+.ltr {
+  direction: ltr !important;
+  text-align: left !important;
+}
+
+.rtl {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Custom font class */
+.font-cairo {
+  font-family: var(--font-cairo), 'Cairo', sans-serif;
+}
+
+/* Arabic Typography Improvements */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-cairo), 'Cairo', sans-serif;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+p, span, div {
+  line-height: 1.7;
+}
+
+/* Better spacing for Arabic text */
+.arabic-text {
+  line-height: 1.8;
+  letter-spacing: 0.01em;
+}
+
+/* RTL-safe utilities */
+.space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+.divide-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-divide-x-reverse: 1;
+}
+
+/* Form inputs RTL */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+input[type="tel"], 
+textarea, 
+select {
+  direction: rtl;
+  text-align: right;
+}
+
+/* English inputs should be LTR */
+input[type="email"].ltr,
+input[type="url"].ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Button improvements for Arabic */
+button {
+  font-family: var(--font-cairo), 'Cairo', sans-serif;
+  font-weight: 500;
+}
+
+/* Table RTL support */
+table {
+  direction: rtl;
+}
+
+th, td {
+  text-align: right;
+}
+
+/* Navigation improvements */
+nav ul {
+  direction: rtl;
+}
+
+nav ul li {
+  text-align: right;
+}
+
+/* Responsive text sizes for Arabic */
+@media (max-width: 640px) {
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
 }
