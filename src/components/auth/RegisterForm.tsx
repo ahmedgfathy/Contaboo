@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
-    email: '',
+    mobileNumber: '',
     password: '',
     fullName: '',
-    phone: '',
+    role: 'agent' as 'agent' | 'client',
     confirmPassword: ''
   })
   const [loading, setLoading] = useState(false)
@@ -29,14 +30,15 @@ export default function RegisterForm() {
     }
 
     try {
+      // Create user with phone number as primary identifier
       const { error } = await supabase.auth.signUp({
-        email: formData.email,
+        phone: formData.mobileNumber,
         password: formData.password,
         options: {
           data: {
             full_name: formData.fullName,
-            phone: formData.phone,
-            role: 'agent'
+            mobile_number: formData.mobileNumber,
+            role: formData.role
           }
         }
       })
@@ -44,8 +46,8 @@ export default function RegisterForm() {
       if (error) {
         setError(error.message)
       } else {
-        // Registration successful
-        router.push('/auth/login?message=Please check your email to confirm your account')
+        // Registration successful - users are auto-confirmed
+        router.push('/auth/login?message=Registration successful, please sign in')
       }
     } catch {
       setError('An unexpected error occurred')
@@ -54,7 +56,7 @@ export default function RegisterForm() {
     }
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -96,36 +98,35 @@ export default function RegisterForm() {
             </div>
             
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
+              <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">
+                Mobile Number
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="mobileNumber"
+                name="mobileNumber"
+                type="tel"
                 required
-                value={formData.email}
+                value={formData.mobileNumber}
                 onChange={handleInputChange}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter your email"
+                placeholder="Enter your mobile number (e.g., 01002778090)"
               />
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone Number
+              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                Register as
               </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                required
-                value={formData.phone}
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
                 onChange={handleInputChange}
                 className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="Enter your phone number"
-              />
+              >
+                <option value="agent">Real Estate Agent</option>
+                <option value="client">Client</option>
+              </select>
             </div>
 
             <div>

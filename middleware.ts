@@ -57,16 +57,40 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Protected routes that require authentication
-  if (request.nextUrl.pathname.startsWith('/crm')) {
+  if (request.nextUrl.pathname.startsWith('/crm') || request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
       return NextResponse.redirect(new URL('/auth/login', request.url))
+    }
+
+    // Check admin access for admin routes
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (userData?.role !== 'admin') {
+        return NextResponse.redirect(new URL('/crm/dashboard', request.url))
+      }
     }
   }
 
   // Redirect authenticated users away from auth pages
   if (request.nextUrl.pathname.startsWith('/auth')) {
     if (user) {
-      return NextResponse.redirect(new URL('/crm/dashboard', request.url))
+      // Get user role to redirect appropriately
+      const { data: userData } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (userData?.role === 'admin') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+      } else {
+        return NextResponse.redirect(new URL('/crm/dashboard', request.url))
+      }
     }
   }
 
