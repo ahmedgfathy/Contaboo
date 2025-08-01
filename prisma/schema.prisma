@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  agent
+  client
+}
+
+enum PropertyStatus {
+  available
+  sold
+  rented
+  pending
+}
+
+enum PropertyType {
+  apartment
+  house
+  villa
+  commercial
+  land
+}
+
+model User {
+  id            String   @id @default(cuid())
+  mobileNumber  String   @unique @map("mobile_number")
+  email         String?  @unique
+  fullName      String?  @map("full_name")
+  avatarUrl     String?  @map("avatar_url")
+  role          UserRole @default(client)
+  isActive      Boolean  @default(true) @map("is_active")
+  passwordHash  String   @map("password_hash")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  agent         Agent?
+  client        Client?
+  properties    Property[]
+  leads         Lead[]
+  appointments  Appointment[]
+  transactions  Transaction[]
+
+  @@map("users")
+}
+
+model Agent {
+  id               String  @id @default(cuid())
+  userId           String  @unique @map("user_id")
+  licenseNumber    String? @map("license_number")
+  specialization   String?
+  bio              String?
+  commissionRate   Float   @default(0.03) @map("commission_rate")
+  propertiesCount  Int     @default(0) @map("properties_count")
+  totalSales       Float   @default(0) @map("total_sales")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedClients  Client[]
+
+  @@map("agents")
+}
+
+model Client {
+  id                    String        @id @default(cuid())
+  userId                String        @unique @map("user_id")
+  preferredLocation     String?       @map("preferred_location")
+  budgetMin             Float?        @map("budget_min")
+  budgetMax             Float?        @map("budget_max")
+  preferredPropertyType PropertyType? @map("preferred_property_type")
+  notes                 String?
+  assignedAgentId       String?       @map("assigned_agent_id")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAgent Agent?  @relation(fields: [assignedAgentId], references: [id])
+
+  @@map("clients")
+}
+
+model Property {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  price       Float
+  location    String
+  address     String?
+  bedrooms    Int?
+  bathrooms   Int?
+  area        Float?
+  propertyType PropertyType  @map("property_type")
+  status      PropertyStatus @default(available)
+  images      String?        // JSON array of image URLs
+  features    String?        // JSON array of features
+  agentId     String?        @map("agent_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  agent        User?           @relation(fields: [agentId], references: [id])
+  propertyImages PropertyImage[]
+  leads        Lead[]
+  appointments Appointment[]
+  transactions Transaction[]
+
+  @@map("properties")
+}
+
+model PropertyImage {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  imageUrl     String   @map("image_url")
+  altText      String?  @map("alt_text")
+  isPrimary    Boolean  @default(false) @map("is_primary")
+  displayOrder Int      @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@map("property_images")
+}
+
+model Lead {
+  id         String   @id @default(cuid())
+  propertyId String   @map("property_id")
+  userId     String   @map("user_id")
+  message    String?
+  phone      String?
+  email      String?
+  status     String   @default("new")
+  source     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("leads")
+}
+
+model Appointment {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  userId       String   @map("user_id")
+  scheduledAt  DateTime @map("scheduled_at")
+  status       String   @default("scheduled")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  propertyId   String   @map("property_id")
+  buyerId      String   @map("buyer_id")
+  amount       Float
+  commission   Float?
+  status       String   @default("pending")
+  closingDate  DateTime? @map("closing_date")
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buyer    User     @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}

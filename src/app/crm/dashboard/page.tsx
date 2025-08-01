@@ -1,12 +1,46 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+'use client'
 
-export default async function Dashboard() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { localAuth, User } from '@/lib/auth'
 
-  if (!user) {
-    redirect('/auth/login')
+export default function Dashboard() {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
+
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        router.push('/auth/login')
+        return
+      }
+
+      const userData = await localAuth.verifyToken(token)
+      if (!userData) {
+        router.push('/auth/login')
+        return
+      }
+
+      setUser(userData)
+      setLoading(false)
+    }
+
+    verifyAuth()
+  }, [router])
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken')
+    router.push('/auth/login')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
@@ -19,47 +53,38 @@ export default async function Dashboard() {
               <h1 className="text-xl font-semibold text-gray-900">Contaboo CRM</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {user.email}</span>
-              <form action="/auth/logout" method="post">
-                <button
-                  type="submit"
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Logout
-                </button>
-              </form>
+              <span className="text-sm text-gray-700">
+                Welcome, {user?.fullName || user?.mobileNumber}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Dashboard Content */}
+      {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg p-8">
+          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Welcome to your CRM Dashboard!
+                {user?.role === 'agent' ? 'Agent Dashboard' : 'Client Dashboard'}
               </h2>
-              <p className="text-gray-600 mb-6">
-                This is your Real Estate CRM dashboard. You can manage properties, clients, and more from here.
+              <p className="text-gray-600">
+                {user?.role === 'agent' 
+                  ? 'Manage your properties and clients here.'
+                  : 'Browse properties and manage your inquiries here.'
+                }
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Properties</h3>
-                  <p className="text-3xl font-bold text-indigo-600">0</p>
-                  <p className="text-sm text-gray-500">Total Properties</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Clients</h3>
-                  <p className="text-3xl font-bold text-green-600">0</p>
-                  <p className="text-sm text-gray-500">Active Clients</p>
-                </div>
-                <div className="bg-white p-6 rounded-lg shadow">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Deals</h3>
-                  <p className="text-3xl font-bold text-yellow-600">0</p>
-                  <p className="text-sm text-gray-500">Closed Deals</p>
-                </div>
+              <div className="mt-6">
+                <span className="inline-flex items-center px-3 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                  Role: {user?.role}
+                </span>
               </div>
             </div>
           </div>

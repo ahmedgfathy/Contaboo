@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 export default function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -15,7 +14,6 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const supabase = createClient()
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,27 +27,29 @@ export default function RegisterForm() {
     }
 
     try {
-      // Create user with email format but store mobile number
-      const email = `${formData.mobileNumber}@contaboo.local`
-      
-      const { error } = await supabase.auth.signUp({
-        email: email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            mobile_number: formData.mobileNumber,
-            role: formData.role
-          }
-        }
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mobileNumber: formData.mobileNumber,
+          password: formData.password,
+          fullName: formData.fullName,
+          role: formData.role,
+        }),
       })
 
-      if (error) {
-        setError(error.message)
-      } else {
-        // Registration successful - users are auto-confirmed
-        router.push('/auth/login?message=Registration successful, please sign in')
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Registration failed')
+        return
       }
+
+      // Redirect to dashboard after successful registration
+      router.push('/crm/dashboard')
+      router.refresh()
     } catch {
       setError('An unexpected error occurred')
     } finally {
