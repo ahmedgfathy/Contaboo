@@ -44,7 +44,7 @@ export class MobileAuth {
       }
 
       return { success: false, error: 'Authentication failed' }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Network error occurred' }
     }
   }

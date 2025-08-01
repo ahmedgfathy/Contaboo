@@ -20,9 +20,6 @@ export default async function AdminDashboard() {
     redirect('/crm/dashboard')
   }
 
-  // Get dashboard statistics
-  // const { data: stats } = await supabase.rpc('get_admin_stats')
-
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Navigation */}
