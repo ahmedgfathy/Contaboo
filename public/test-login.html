@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login Test</title>
+</head>
+<body>
+    <h1>Direct Login Test</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        identifier: 'ahmedgfathy@gmail.com',
+                        password: 'ZeroCall20!@H'
+                    }),
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <h3>✅ Login Successful!</h3>
+                        <p><strong>User:</strong> ${data.user.fullName}</p>
+                        <p><strong>Role:</strong> ${data.user.role}</p>
+                        <p><strong>Email:</strong> ${data.user.email}</p>
+                        <p><strong>Mobile:</strong> ${data.user.mobileNumber}</p>
+                        <p><strong>Token:</strong> ${data.token ? 'Present' : 'Missing'}</p>
+                        <button onclick="window.location.href='/admin/dashboard'">Go to Admin Dashboard</button>
+                    `;
+                    
+                    // Store token
+                    localStorage.setItem('authToken', data.token);
+                } else {
+                    resultDiv.innerHTML = `<h3>❌ Login Failed:</h3><p>${data.message}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<h3>❌ Error:</h3><p>${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

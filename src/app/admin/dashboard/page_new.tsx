@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-
-interface User {
-  id: string
-  mobileNumber: string
-  email?: string
-  fullName?: string
-  role: 'admin' | 'agent' | 'client'
-  isActive: boolean
-}
+import { localAuth, User } from '@/lib/auth'
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null)
@@ -33,42 +25,28 @@ export default function AdminDashboard() {
         return
       }
 
+      const userData = await localAuth.verifyToken(token)
+      if (!userData || userData.role !== 'admin') {
+        router.push('/auth/login')
+        return
+      }
+
+      setUser(userData)
+      setLoading(false)
+
+      // Fetch stats
       try {
-        const response = await fetch('/api/auth/verify', {
+        const response = await fetch('/api/admin/stats', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         })
-
-        const data = await response.json()
-
-        if (!response.ok || !data.valid || data.user.role !== 'admin') {
-          localStorage.removeItem('authToken')
-          router.push('/auth/login')
-          return
-        }
-
-        setUser(data.user)
-        setLoading(false)
-
-        // Fetch stats
-        try {
-          const statsResponse = await fetch('/api/admin/stats', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          if (statsResponse.ok) {
-            const statsData = await statsResponse.json()
-            setStats(statsData)
-          }
-        } catch (error) {
-          console.error('Failed to fetch stats:', error)
+        if (response.ok) {
+          const statsData = await response.json()
+          setStats(statsData)
         }
       } catch (error) {
-        console.error('Auth verification failed:', error)
-        localStorage.removeItem('authToken')
-        router.push('/auth/login')
+        console.error('Failed to fetch stats:', error)
       }
     }
 

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('')
@@ -36,9 +35,6 @@ export default function LoginForm() {
         // Store the token in localStorage for client-side auth
         localStorage.setItem('authToken', data.token)
         
-        // Add a small delay to ensure localStorage is set
-        await new Promise(resolve => setTimeout(resolve, 100))
-        
         // Redirect based on user role
         if (data.user.role === 'admin') {
           router.push('/admin/dashboard')
@@ -60,14 +56,6 @@ export default function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <div className="flex justify-center mb-6">
-            <Link
-              href="/"
-              className="text-blue-600 hover:text-blue-500 text-sm font-medium"
-            >
-              ← Back to Home
-            </Link>
-          </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
           </h2>
@@ -129,12 +117,12 @@ export default function LoginForm() {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link
+              <a
                 href="/auth/register"
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
                 Register here
-              </Link>
+              </a>
             </p>
           </div>
 

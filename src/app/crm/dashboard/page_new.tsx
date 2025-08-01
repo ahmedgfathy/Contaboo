@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-
-interface User {
-  id: string
-  mobileNumber: string
-  email?: string
-  fullName?: string
-  role: 'admin' | 'agent' | 'client'
-  isActive: boolean
-}
+import { localAuth, User } from '@/lib/auth'
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null)
@@ -25,28 +17,14 @@ export default function Dashboard() {
         return
       }
 
-      try {
-        const response = await fetch('/api/auth/verify', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        const data = await response.json()
-
-        if (!response.ok || !data.valid) {
-          localStorage.removeItem('authToken')
-          router.push('/auth/login')
-          return
-        }
-
-        setUser(data.user)
-        setLoading(false)
-      } catch (error) {
-        console.error('Auth verification failed:', error)
-        localStorage.removeItem('authToken')
+      const userData = await localAuth.verifyToken(token)
+      if (!userData) {
         router.push('/auth/login')
+        return
       }
+
+      setUser(userData)
+      setLoading(false)
     }
 
     verifyAuth()
