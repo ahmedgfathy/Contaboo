@@ -21,7 +21,7 @@ export default async function AdminDashboard() {
   }
 
   // Get dashboard statistics
-  const { data: stats } = await supabase.rpc('get_admin_stats')
+  // const { data: stats } = await supabase.rpc('get_admin_stats')
 
   return (
     <div className="min-h-screen bg-gray-100">

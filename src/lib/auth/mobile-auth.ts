@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 
 export interface AuthResult {
   success: boolean
-  user?: any
+  user?: User & { role?: string; mobile_number?: string; full_name?: string }
   error?: string
 }
 
@@ -23,13 +24,13 @@ export class MobileAuth {
 
       if (data.user) {
         // Get user role and additional data
-        const { data: userData, error: userError } = await this.supabase
+        const { data: userData } = await this.supabase
           .from('users')
           .select('*')
           .eq('id', data.user.id)
           .single()
 
-        if (userError) {
+        if (!userData) {
           return { success: false, error: 'Failed to fetch user data' }
         }
 
@@ -73,9 +74,9 @@ export class MobileAuth {
 
       return {
         success: true,
-        user: data.user
+        user: data.user || undefined
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Network error occurred' }
     }
   }
@@ -89,16 +90,16 @@ export class MobileAuth {
       }
 
       return { success: true }
-    } catch (error) {
+    } catch {
       return { success: false, error: 'Network error occurred' }
     }
   }
 
   async getCurrentUser() {
     try {
-      const { data: { user }, error } = await this.supabase.auth.getUser()
+      const { data: { user } } = await this.supabase.auth.getUser()
       
-      if (error || !user) {
+      if (!user) {
         return null
       }
 
@@ -113,25 +114,25 @@ export class MobileAuth {
         ...user,
         ...userData
       }
-    } catch (error) {
+    } catch {
       return null
     }
   }
 
   async getUserRole(userId: string): Promise<string | null> {
     try {
-      const { data, error } = await this.supabase
+      const { data } = await this.supabase
         .from('users')
         .select('role')
         .eq('id', userId)
         .single()
 
-      if (error || !data) {
+      if (!data) {
         return null
       }
 
       return data.role
-    } catch (error) {
+    } catch {
       return null
     }
   }
