@@ -3,19 +3,24 @@ import { PrismaClient } from '@prisma/client'
 import jwt from 'jsonwebtoken'
 
 const prisma = new PrismaClient()
+const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback-secret'
 
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('❌ Properties API: No authorization header')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const token = authHeader.substring(7)
+    console.log('🔑 Properties API: Token received, length:', token.length)
     
     try {
-      jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
+      const decoded = jwt.verify(token, JWT_SECRET)
+      console.log('✅ Properties API: Token verified successfully', decoded)
     } catch (error) {
+      console.log('❌ Properties API: Token verification failed:', error)
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
