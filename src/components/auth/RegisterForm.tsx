@@ -29,7 +29,7 @@ export default function RegisterForm() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -47,7 +47,7 @@ export default function RegisterForm() {
         // Registration successful
         router.push('/auth/login?message=Please check your email to confirm your account')
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)

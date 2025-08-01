@@ -29,7 +29,7 @@ export default function LoginForm() {
         router.push('/crm/dashboard')
         router.refresh()
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
@@ -103,7 +103,7 @@ export default function LoginForm() {
               href="/auth/register"
               className="font-medium text-indigo-600 hover:text-indigo-500"
             >
-              Don't have an account? Register here
+              Don&apos;t have an account? Register here
             </a>
           </div>
         </form>
