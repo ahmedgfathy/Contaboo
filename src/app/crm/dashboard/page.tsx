@@ -29,7 +29,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<PropertyStats | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const { t, language } = useLanguage()
+  const { t, language, setLanguage } = useLanguage()
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -144,6 +144,12 @@ export default function Dashboard() {
               </h1>
             </div>
             <div className="flex items-center space-x-4 rtl:space-x-reverse">
+              <button
+                onClick={() => setLanguage(language === 'ar' ? 'en' : 'ar')}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all duration-200 font-medium"
+              >
+                {language === 'ar' ? 'English' : 'العربية'}
+              </button>
               <span className="text-sm text-gray-700 font-cairo">
                 {language === 'ar' ? 'أهلاً' : 'Welcome'}, {user?.fullName || user?.mobileNumber}
               </span>

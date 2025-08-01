@@ -24,21 +24,35 @@ export async function GET(request: NextRequest) {
     const types = await prisma.property.findMany({
       select: { type: true },
       distinct: ['type'],
-      where: { type: { not: null } }
+      where: { 
+        AND: [
+          { type: { not: null } },
+          { type: { not: '' } }
+        ]
+      }
     })
 
     // Get distinct transaction types
     const transactionTypes = await prisma.property.findMany({
       select: { transactionType: true },
       distinct: ['transactionType'],
-      where: { transactionType: { not: null } }
+      where: { 
+        AND: [
+          { transactionType: { not: null } },
+          { transactionType: { not: '' } }
+        ]
+      }
     })
 
     // Get distinct area numbers (sorted)
     const areaNumbers = await prisma.property.findMany({
       select: { areaNumber: true },
       distinct: ['areaNumber'],
-      where: { areaNumber: { not: null } },
+      where: { 
+        areaNumber: { 
+          not: null 
+        } 
+      },
       orderBy: { areaNumber: 'asc' }
     })
 
